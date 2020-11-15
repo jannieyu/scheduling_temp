@@ -20,19 +20,19 @@ class Mod_ETF:
 
         """
         Initialize parameters to run modified ETF.
-      
+
         :param G: DAG to schedule
         :param w: List of task sizes/weights
         :param s: List of task speeds
         :param num_machines: total number of machines
-        :param tie_breaking_rule: tie breaking rule in ETF. See function for 
+        :param tie_breaking_rule: tie breaking rule in ETF. See function for
         different options.
-        :param plot: Boolean variable; if True, the constructed schedule will 
+        :param plot: Boolean variable; if True, the constructed schedule will
         be plotted.
-        :param is_etf: Flag to toggle from GETF to pure ETF. (No need to change 
+        :param is_etf: Flag to toggle from GETF to pure ETF. (No need to change
         this for now.. code breaks rn if you set this to be False)
         """
-
+    
         self.G = G
         self.w = w
         self.s = s
@@ -48,16 +48,16 @@ class Mod_ETF:
             self.pseudosize[j] = (s[j])**2
 
         # Construct group assignment f
-        # In our ETF case, tasks can be assigned to any machine, not just a 
+        # In our ETF case, tasks can be assigned to any machine, not just a
         # subset like GETF
-        # Reason why we have this set up is because code was modified from 
+        # Reason why we have this set up is because code was modified from
         # simulations.py
         self.group_assignment(is_etf)
 
         self.task_process_time = [self.w[i] / self.s[i] for i in range(self.num_tasks)]
 
         # Run modified ETF on the data
-        # As done in paper, h maps tasks to machines, t maps tasks to the 
+        # As done in paper, h maps tasks to machines, t maps tasks to the
         # interval that they run at
         self.h, self.t, self.order = self.etf()
 
@@ -72,7 +72,7 @@ class Mod_ETF:
             metadata = make_task_metadata(self.order, self.num_tasks, self.t)
             colors = plot_gantt(metadata, self.obj_value, color_palette)
 
-            
+
 
     def power(self, speed):
         """
@@ -88,20 +88,25 @@ class Mod_ETF:
         :return: objective function value
         """
         total_cost = 0
-       
+        energy = 0
+        mrt = 0
         for j in range(self.num_tasks):
+            mrt += self.t[j][1]
+            energy += ((self.w[j] * self.power(self.s[j]))/ self.s[j])
             total_cost += (self.t[j][1] + ((self.w[j] * self.power(self.s[j]))/ self.s[j]))
 
+        self.mrt = mrt
+        self.energy = energy
         return total_cost
-        
+
 
     def group_assignment(self, is_etf):
         """
-        Assigns each task to the group of machines that it can be assigned to 
+        Assigns each task to the group of machines that it can be assigned to
         when performing GETF (or mod ETF in our case)
 
         :param is_etf: If true, than tasks can be assigned to any of the machines
-        :return: f as vector of length num_tasks; each entry f[j] holds the 
+        :return: f as vector of length num_tasks; each entry f[j] holds the
         list of machines that task j can be assigned to.
         """
         self.f = [set() for i in range(self.num_tasks)]
@@ -136,11 +141,11 @@ class Mod_ETF:
         # Handle base case when there is only one item
         if len(B) == 1:
             value = 0
-           
+
 
         if self.tie_breaking_rule == 0:
             value = random.randint(0, len(B)-1)
-          
+
 
         if self.tie_breaking_rule == 1:
             maxI = 0
@@ -178,7 +183,7 @@ class Mod_ETF:
         for machine in poss_machines:
             if len(order[machine]) > 0:
                 if order[machine][len(order[machine]) - 1] in self.G.predecessors(star_task):
-                  
+
                     star_machine = machine
                     break
 
@@ -197,12 +202,12 @@ class Mod_ETF:
         # Set of tasks that have already been scheduled
         done = []
 
-        # Initialize list for task/machine assignments; each entry h[j] will 
+        # Initialize list for task/machine assignments; each entry h[j] will
         # hold the corresponding machine that task j is running on
-        h = [0 for _ in range(self.num_tasks)] 
+        h = [0 for _ in range(self.num_tasks)]
 
         # Initialize the time interval in which each task runs on
-        t = [[0, 0] for _ in range(self.num_tasks)] 
+        t = [[0, 0] for _ in range(self.num_tasks)]
 
         # Initialize earliest time each machine is free
         machine_etf = [0 for i in range(self.num_machines)]
@@ -230,7 +235,7 @@ class Mod_ETF:
                 # Update constrained task earliest start times
                 task_etf[j] = 0
 
-    
+
         while len(done) < self.num_tasks:
 
             # Construct B as a list of tasks with the largest pseudosizes from A
@@ -263,7 +268,7 @@ class Mod_ETF:
             possible_tasks = []
             global_earliest_time = np.inf
             for j in B_prime:
-                
+
                 # Earliest task_starting time for task j
                 earliest_time = np.inf
                 star_machine = 0
@@ -297,7 +302,7 @@ class Mod_ETF:
                 if tj == global_earliest_time:
                     P.append([j, tj, mj])
 
-           
+
             # Use tie_breaking_rule to determine the task to schedule
 
 
@@ -315,7 +320,7 @@ class Mod_ETF:
             t[star_task][0] = machine_task_start
             t[star_task][1] = machine_task_start + self.task_process_time[star_task]
             machine_etf[star_machine] = machine_task_start + self.task_process_time[star_task]
-            
+
             done.append(star_task)
             order[star_machine].append(star_task)
             A.remove(star_task)
@@ -331,11 +336,9 @@ class Mod_ETF:
                     if ready:
                         A.append(child)
                         task_etf[child] = max([t[i][1] for i in self.G.predecessors(child)])
-                    
-    
+
+
         return h, t, order
 
 if __name__ == "__main__":
     pass
-
-

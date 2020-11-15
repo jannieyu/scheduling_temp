@@ -63,15 +63,15 @@ def approx_psize(G, order, interval, verbose=True):
 
             for m in range(num_machines):
                 if m != curr_machine:
-                    
+
                     for other_j in order[m]:
-                    
+
                         other_start = interval[other_j][0]
                         other_end = interval[other_j][1]
                         # other_start = float(interval[other_j][0].__round__(1))
                         # other_end = float(interval[other_j][1].__round__(1))
-                    
-                
+
+
                         if not (other_end <= curr_start):
                             if not (curr_end <= other_start):
                                 concurr_tasks.append(other_j)
@@ -87,17 +87,17 @@ def approx_psize(G, order, interval, verbose=True):
 
                                 if overlap_counter[m] == 0:
                                     overlap_counter[m] = 1
-                                    
-            if verbose:
-                print("---")
-                print("current task " + str(j))
-                print("pre-speed " + str(psize[j]))
-                print("Dependencies " + str(dependencies))
-                print("overlap counter " + str(overlap_counter))
-                print("concurr tasks" + str(concurr_tasks))
+
+            # if verbose:
+            #     print("---")
+            #     print("current task " + str(j))
+            #     print("pre-speed " + str(psize[j]))
+            #     print("Dependencies " + str(dependencies))
+            #     print("overlap counter " + str(overlap_counter))
+            #     print("concurr tasks" + str(concurr_tasks))
 
             psize[j] += dependencies_count
-            psize[j] /= sum(overlap_counter)            
+            psize[j] /= sum(overlap_counter)
     return psize
 
 
@@ -116,13 +116,13 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
     for x in range(len(interval)):
         start, end = interval[x]
         interval_group[int(start)].append(x)
-    print("Intervals is ", interval_group)
+    # print("Intervals is ", interval_group)
     for x1 in range(len(interval_group) - 1, -1, -1):
         curr_task_set = interval_group[x1]
         curr_task_set_copy = curr_task_set.copy()
 
         while curr_task_set_copy != []:
-            #print("---")  
+            #print("---")
             shared_children = []
             sharing_subset = []
             task = curr_task_set_copy[0]
@@ -135,7 +135,7 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
                 checking_sharing_subset.pop(0)
                 sharing_subset.append(task)
                 next_dependencies = dependencies_in_next_task_set(G, order, h, interval_group, x1, task)
-                #print("next dependencises is ", next_dependencies) 
+                #print("next dependencises is ", next_dependencies)
                 for d in next_dependencies:
                     if d not in shared_children:
                         shared_children.append(d)
@@ -154,20 +154,20 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
                                     shared_children.append(other_d)
                 for j in newly_added_sharing_subset:
                     curr_task_set_copy.remove(j)
-            
 
-                  
-                print("task subset: "  + str(sharing_subset))
-                print("shared children: " + str(shared_children))
-                print("remaining in task set: "  + str(curr_task_set_copy))
-                
-                
+
+                #
+                # print("task subset: "  + str(sharing_subset))
+                # print("shared children: " + str(shared_children))
+                # print("remaining in task set: "  + str(curr_task_set_copy))
+                #
+
             if len(sharing_subset) == 1:
                 task = sharing_subset[0]
                 for child in shared_children:
                     psize[task] += psize[child]
 
-                psize[task] += 1     
+                psize[task] += 1
             else:
                 final_psize = 0
                 for child in shared_children:
@@ -241,7 +241,7 @@ def remaining_on_own_machine(num_tasks, order):
                 curr_task = lst[j]
                 next_task = lst[j+1]
                 remaining_lst[curr_task].extend(remaining_lst[next_task])
-            
+
     return remaining_lst
 
 def ub_lst(G, order):
@@ -273,8 +273,8 @@ def ub_lst_graph(G, order):
                 next_task = machine[machine_index + 1]
                 if next_task not in nx.algorithms.descendants(G_copy, task):
                     G_copy.add_edge(task, next_task)
-                    
-    descendant_lst = [list(nx.algorithms.dag.descendants(G_copy, task)) for task in range(num_tasks)]          
+
+    descendant_lst = [list(nx.algorithms.dag.descendants(G_copy, task)) for task in range(num_tasks)]
     return [len(l)+1 for l in descendant_lst]
 
 
@@ -290,10 +290,10 @@ def getDuplicatesWithInfo(listOfElems):
             dictOfElems[elem][0] += 1
             dictOfElems[elem][1].append(index)
         else:
-            # Add a new entry in dictionary 
+            # Add a new entry in dictionary
             dictOfElems[elem] = [1, [index]]
-        index += 1    
- 
+        index += 1
+
     dictOfElems = { key:value for key, value in dictOfElems.items() if value[0] >= 1}
     return dictOfElems
 
@@ -305,7 +305,7 @@ def ub_lst_max(G,order, intervals):
     for key, val in interval_dict.items():
         intervals.append(val[1])
     num_tasks = len(G)
-    max_len = [len(machine) for machine in order]   
+    max_len = [len(machine) for machine in order]
     descendant_lst = [list(nx.algorithms.dag.descendants(G, task)) for task in range(num_tasks)]
     remaining = remaining_on_own_machine(num_tasks, order)
     lst = [0 for _ in range(num_tasks)]
@@ -337,14 +337,14 @@ def num_remaining_tasks_on_machine(order, num_tasks):
             #print("curr_task is ", curr_task)
             psize[curr_task] = num_tasks_on_machine - i
             #print("psize of curr task is", psize[curr_task])
-          
+
     return psize_to_speed(psize)
 
 
 def lb_lst(G):
     num_tasks = len(G)
     return [(length_of_longest_chain(G, i) + num_shared_task_lst[i]) / num_shared_task_lst[i] for i in range(num_tasks)]
-                
+
 def psize_to_speed(psize):
     s = [np.sqrt(psize[i])for i in range(len(psize))]
     return s
@@ -352,5 +352,3 @@ def psize_to_speed(psize):
 def speed_to_psize(speed):
     psize = [speed[i] ** 2 for i in range(len(speed))]
     return psize
-
-
