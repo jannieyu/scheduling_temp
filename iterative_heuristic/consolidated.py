@@ -6,7 +6,6 @@ from iterative_heuristic.approximate_speeds import *
 from makespan_energy.construct_graph_util import *
 from makespan_energy.visualization_util import *
 from graph_functions.erdos_renyi_dag import random_dag as rd
-from comparative_heuristics.simple_heuristic import simple_ETF
 import networkx as nx
 import numpy as np
 import math
@@ -90,13 +89,30 @@ def iterative_heuristic_no_ratio(num_machines, w, G, verbose=False):
     return test2.obj_value
 
 
-def simple_heuristic_no_ratio(num_machines, w, G, verbose=False):
+def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, verbose=False):
     s = [1 for i in range(len(w))]
-    num_tasks = len(w)
     tie_breaking_rule = 2
     # Get ordering using modified ETF
     test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
-    # Get psize approximation
-    s = num_remaining_tasks_on_machine(test.order, num_tasks)
-    test2 = simple_ETF(G, w, s, test.order, num_machines)
-    return test2.obj_value
+    
+    #     # Initialize objective function value
+    heuristic_opt = test.obj_value
+
+    #     while True:
+    # Get pseudosize, convert to speed
+    p_size = approx_psize(G, test.order, test.t)
+    s_prime = [np.sqrt(p) for p in p_size]
+    naive_objective = compute_cost(w, test.t, s_prime)
+    # Get ordering using modified ETF
+    test2 = Mod_ETF(G, w, s_prime, num_machines, tie_breaking_rule, plot=verbose)
+    return naive_objective, test2.obj_value, test2.order
+
+
+def compute_cost(w, t, s):
+    total_cost = 0
+    energy = 0
+    mrt = 0
+    for j in range(len(s)):
+        total_cost += (t[j][1] + (w[j] * s[j]))
+    return total_cost
+
