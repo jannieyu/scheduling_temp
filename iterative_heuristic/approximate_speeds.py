@@ -3,15 +3,15 @@ import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
-from conjecture.all_valid_orderings import *
-from conjecture.optimization_functions import *
+
 from copy import deepcopy
 from itertools import zip_longest
 
-def approx_speeds(G, order):
+#FIX
+def approx_psize_naive(G, order):
     num_tasks = len(G)
     num_machines = len(order)
-    s = [0 for _ in range(num_tasks)]
+    p = [0 for _ in range(num_tasks)]
 
     for i in range(num_machines):
         for j in range(len(order[i])):
@@ -21,18 +21,19 @@ def approx_speeds(G, order):
 
             for k in range(j, len(order[i])):
                 dependencies.append(order[i][k])
+ 
+            # Commented this out because in the naive method, we only consider the p-size 
+            # as proportional to the number of tasks on its machine only.
 
-            for d in list(nx.algorithms.dag.descendants(G, curr_task)):
-                if d not in dependencies:
-                    dependencies.append(d)
+            # for d in list(nx.algorithms.dag.descendants(G, curr_task)):
+            #     if d not in dependencies:
+            #         dependencies.append(d)
 
+            p[curr_task] = len(dependencies)
 
-            s[curr_task] = np.sqrt(len(dependencies))
+    return p
 
-
-    return s
-
-def approx_psize(G, order, interval, verbose=True):
+def approx_psize_heterogeneous(G, order, interval, verbose=True):
 
     num_tasks = len(G)
     num_machines = len(order)
@@ -54,12 +55,9 @@ def approx_psize(G, order, interval, verbose=True):
 
             psize[j] += 1
             for d in list(nx.algorithms.dag.descendants(G, j)):
-                                    if d not in concurr_tasks:
-                                        if d not in dependencies:
-                                            dependencies.append(d)
-                                            dependencies_count += 1
-
-
+                if d not in dependencies:
+                    dependencies.append(d)
+                    dependencies_count += 1
 
             for m in range(num_machines):
                 if m != curr_machine:
@@ -68,16 +66,14 @@ def approx_psize(G, order, interval, verbose=True):
 
                         other_start = interval[other_j][0]
                         other_end = interval[other_j][1]
-                        # other_start = float(interval[other_j][0].__round__(1))
-                        # other_end = float(interval[other_j][1].__round__(1))
-
-
+                      
                         if not (other_end <= curr_start):
                             if not (curr_end <= other_start):
                                 concurr_tasks.append(other_j)
                                 end = min(curr_end, other_end)
                                 start = max(curr_start, other_start)
-                                psize[j] += (end - start)/ (curr_end - curr_start)
+                                # psize[j] += (end - start)/ (curr_end - curr_start)
+                                psize[j] += 1
 
                                 for d in list(nx.algorithms.dag.descendants(G, other_j)):
                                     if d not in concurr_tasks:
@@ -88,33 +84,20 @@ def approx_psize(G, order, interval, verbose=True):
                                 if overlap_counter[m] == 0:
                                     overlap_counter[m] = 1
 
-            # if verbose:
-            #     print("---")
-            #     print("current task " + str(j))
-            #     print("pre-speed " + str(psize[j]))
-            #     print("Dependencies " + str(dependencies))
-            #     print("overlap counter " + str(overlap_counter))
-            #     print("concurr tasks" + str(concurr_tasks))
-
             psize[j] += dependencies_count
             psize[j] /= sum(overlap_counter)
     return psize
 
-
-
-
 def approx_psize_homogeneous(G, order, h, interval, verbose=True):
 
     num_tasks = len(G)
-    num_machines = len(order)
     num_shared_task_lst = [0 for _ in range(num_tasks)]
-
 
     psize = [0 for _ in range(num_tasks)]
     last_on_machine_interval_start = max([interval[i][1] for i in range(num_tasks)])
     interval_group = [[] for _ in range(int(last_on_machine_interval_start))]
     for x in range(len(interval)):
-        start, end = interval[x]
+        start, _ = interval[x]
         interval_group[int(start)].append(x)
     # print("Intervals is ", interval_group)
     for x1 in range(len(interval_group) - 1, -1, -1):
@@ -122,7 +105,7 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
         curr_task_set_copy = curr_task_set.copy()
 
         while curr_task_set_copy != []:
-            #print("---")
+           
             shared_children = []
             sharing_subset = []
             task = curr_task_set_copy[0]
@@ -154,13 +137,6 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
                                     shared_children.append(other_d)
                 for j in newly_added_sharing_subset:
                     curr_task_set_copy.remove(j)
-
-
-                #
-                # print("task subset: "  + str(sharing_subset))
-                # print("shared children: " + str(shared_children))
-                # print("remaining in task set: "  + str(curr_task_set_copy))
-                #
 
             if len(sharing_subset) == 1:
                 task = sharing_subset[0]
@@ -341,9 +317,9 @@ def num_remaining_tasks_on_machine(order, num_tasks):
     return psize_to_speed(psize)
 
 
-def lb_lst(G):
-    num_tasks = len(G)
-    return [(length_of_longest_chain(G, i) + num_shared_task_lst[i]) / num_shared_task_lst[i] for i in range(num_tasks)]
+# def lb_lst(G):
+#     num_tasks = len(G)
+#     return [(length_of_longest_chain(G, i) + num_shared_task_lst[i]) / num_shared_task_lst[i] for i in range(num_tasks)]
 
 def psize_to_speed(psize):
     s = [np.sqrt(psize[i])for i in range(len(psize))]

@@ -1,4 +1,3 @@
-#from gurobipy import *
 import networkx as nx
 import numpy as np
 import random
@@ -70,7 +69,7 @@ class Mod_ETF:
                 (128 / 256, 128 / 256, 128 / 256),
                 (255 / 256, 255 / 256, 255 / 256), (0, 0, 0)]
             metadata = make_task_metadata(self.order, self.num_tasks, self.t)
-            colors = plot_gantt(metadata, self.obj_value, color_palette)
+            plot_gantt(metadata, self.obj_value, color_palette)
 
 
 
@@ -308,11 +307,11 @@ class Mod_ETF:
 
             b = self.break_tie(P, order)
 
-            if b == None:
-                print(b)
-                print(P)
-                print(B_prime)
-                print(B)
+            # if b == None:
+            #     print(b)
+            #     print(P)
+            #     print(B_prime)
+            #     print(B)
             star_task, machine_task_start, star_machine = b
             star_machine = int(star_machine)
 
@@ -336,7 +335,6 @@ class Mod_ETF:
                     if ready:
                         A.append(child)
                         task_etf[child] = max([t[i][1] for i in self.G.predecessors(child)])
-
 
         return h, t, order
 
