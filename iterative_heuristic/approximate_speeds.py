@@ -3,8 +3,7 @@ import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
-from conjecture.all_valid_orderings import *
-from conjecture.optimization_functions import *
+
 from copy import deepcopy
 from itertools import zip_longest
 
@@ -30,9 +29,7 @@ def approx_psize_naive(G, order):
             #     if d not in dependencies:
             #         dependencies.append(d)
 
-
             p[curr_task] = len(dependencies)
-
 
     return p
 
@@ -94,14 +91,13 @@ def approx_psize_heterogeneous(G, order, interval, verbose=True):
 def approx_psize_homogeneous(G, order, h, interval, verbose=True):
 
     num_tasks = len(G)
-    num_machines = len(order)
     num_shared_task_lst = [0 for _ in range(num_tasks)]
 
     psize = [0 for _ in range(num_tasks)]
     last_on_machine_interval_start = max([interval[i][1] for i in range(num_tasks)])
     interval_group = [[] for _ in range(int(last_on_machine_interval_start))]
     for x in range(len(interval)):
-        start, end = interval[x]
+        start, _ = interval[x]
         interval_group[int(start)].append(x)
     # print("Intervals is ", interval_group)
     for x1 in range(len(interval_group) - 1, -1, -1):
@@ -109,7 +105,7 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
         curr_task_set_copy = curr_task_set.copy()
 
         while curr_task_set_copy != []:
-            #print("---")
+           
             shared_children = []
             sharing_subset = []
             task = curr_task_set_copy[0]

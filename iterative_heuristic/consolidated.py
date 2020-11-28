@@ -6,11 +6,12 @@ from iterative_heuristic.approximate_speeds import *
 from makespan_energy.construct_graph_util import *
 from makespan_energy.visualization_util import *
 from graph_functions.erdos_renyi_dag import random_dag as rd
+from iterative_heuristic.naive_rescheduler import *
 import networkx as nx
 import numpy as np
 import math
 import random
-
+import copy
 
 def iterative_heuristic(num_tasks, num_machines, seed, homogeneous=True, verbose=False):
     did_not_work = False
@@ -106,17 +107,20 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, homogeneous=True,
     # Get ordering using modified ETF
     test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
     
-    # Initialize objective function value
-    heuristic_opt = test.obj_value
+    # # Initialize objective function value
+    # heuristic_opt = test.obj_value
 
-    # Naive method
+    # # Naive method
     p_size = approx_psize_naive(G, test.order)
-    print(p_size)
+    # print(p_size)
     s_prime_naive = psize_to_speed(p_size)
-    test_naive = Mod_ETF(G, w, s_prime_naive, num_machines, tie_breaking_rule, plot=verbose)
+    naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+    naive_cost = compute_cost(w, naive_t, s_prime_naive)
+    # #test_naive = Mod_ETF(G, w, s_prime_naive, num_machines, tie_breaking_rule, plot=verbose)
     
     # Heuristic method
     if homogeneous:
+        print(test.order)
         p_size,_ = approx_psize_homogeneous(G, test.order, test.h, test.t)
     else:
         p_size,_ = approx_psize_heterogeneous(G, test.order, test.t)
@@ -126,7 +130,7 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, homogeneous=True,
     s_prime_heuristic = psize_to_speed(p_size)
     test_heuristic = Mod_ETF(G, w, s_prime_heuristic, num_machines, tie_breaking_rule, plot=verbose)
     print("-")
-    return test_naive.obj_value, test_heuristic.obj_value, test_heuristic.order
+    return naive_cost, test_heuristic.obj_value, test_heuristic.order
 
 
 def compute_cost(w, t, s):
