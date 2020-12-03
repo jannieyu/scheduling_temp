@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from itertools import zip_longest
 
-#FIX
 def approx_psize_naive(G, order):
     num_tasks = len(G)
     num_machines = len(order)
@@ -225,10 +224,6 @@ def ub_lst(G, order):
     num_tasks = len(G)
     descendant_lst = [list(nx.algorithms.dag.descendants(G, task)) for task in range(num_tasks)]
     remaining = remaining_on_own_machine(num_tasks, order)
-#     print("remaining is", remaining)
-    # print("d list: " + str(descendant_lst))
-    # print("remaining: " + str(remaining))
-
     lst = [None for _ in range(num_tasks)]
     for j in range(num_tasks):
         lst[j] = remaining[j]
@@ -302,24 +297,18 @@ def ub_lst_max(G,order, intervals):
 
 
 def num_remaining_tasks_on_machine(order, num_tasks):
-    #print(order)
+
     psize=[-1]* num_tasks
+
     for machine in order:
-        #print("machine is ", machine)
+       
         num_tasks_on_machine = len(machine)
+        
         for i in range(num_tasks_on_machine):
-            #print(i)
             curr_task = machine[i]
-            #print("curr_task is ", curr_task)
             psize[curr_task] = num_tasks_on_machine - i
-            #print("psize of curr task is", psize[curr_task])
-
+            
     return psize_to_speed(psize)
-
-
-# def lb_lst(G):
-#     num_tasks = len(G)
-#     return [(length_of_longest_chain(G, i) + num_shared_task_lst[i]) / num_shared_task_lst[i] for i in range(num_tasks)]
 
 def psize_to_speed(psize):
     s = [np.sqrt(psize[i])for i in range(len(psize))]

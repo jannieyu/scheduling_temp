@@ -3,7 +3,8 @@ import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
-
+from iterative_heuristic.approximate_speeds import *
+from iterative_heuristic.modified_etf import Mod_ETF
 
 def native_rescheduler(G, s, w, order):
     machine_earliest_start = [0 for i in range(len(order))]
@@ -54,4 +55,11 @@ def native_rescheduler(G, s, w, order):
 
             
                 
+def naive_v2(G, w, num_machines, verbose=False):
+    psize = [len(nx.algorithms.dag.descendants(G, task))+1 for task in range(len(G))]
+    s = psize_to_speed(psize)
+    print(s)
+    test_heuristic = Mod_ETF(G, w, s, num_machines, tie_breaking_rule=2, plot=verbose)
+    return test_heuristic.obj_value, test_heuristic.order
+
 
