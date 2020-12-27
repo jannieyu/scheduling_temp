@@ -5,6 +5,7 @@ import math
 import matplotlib.pyplot as plt
 from iterative_heuristic.approximate_speeds import *
 from iterative_heuristic.modified_etf import Mod_ETF
+import copy
 
 def native_rescheduler(G, s, w, order):
     machine_earliest_start = [0 for i in range(len(order))]
@@ -52,10 +53,21 @@ def native_rescheduler(G, s, w, order):
             machine_to_task_list.pop(machine)
 
     return t
+ 
+def get_cost_naive_1(num_machines, w, G, order):
+    '''naive version that runs ETF first'''
 
-            
-                
-def naive_v2(G, w, num_machines, verbose=False):
+    p_size = approx_psize_naive(G, order)
+    s_prime_naive = psize_to_speed(p_size)
+    naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(order))
+    naive_cost = compute_cost(w, naive_t, s_prime_naive)
+
+    return naive_cost
+
+def get_cost_naive_2(num_machines, w, G, verbose=False):
+    ''' naive version that creates pseudosize first before running 
+    ETF. (2 is more naive)'''
+
     psize = [len(nx.algorithms.dag.descendants(G, task))+1 for task in range(len(G))]
     s = psize_to_speed(psize)
     print(s)
@@ -63,3 +75,8 @@ def naive_v2(G, w, num_machines, verbose=False):
     return test_heuristic.obj_value, test_heuristic.order
 
 
+def compute_cost(w, t, s):
+    total_cost = 0
+    for j in range(len(s)):
+        total_cost += (t[j][1] + (w[j] * s[j]))
+    return total_cost

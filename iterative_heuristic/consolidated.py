@@ -108,7 +108,7 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, naive_version=2, 
     
     '''
     
-    s = [1 for i in range(len(w))]
+    s = [1 for _ in range(len(w))]
     tie_breaking_rule = 2
 
     # Get initial ordering using modified ETF
@@ -116,16 +116,13 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, naive_version=2, 
 
     # Run the naive method
     if naive_version == 1:
-        p_size = approx_psize_naive(G, test.order)
-        s_prime_naive = psize_to_speed(p_size)
-        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
-        naive_cost = compute_cost(w, naive_t, s_prime_naive)
+        naive_cost = get_cost_naive_1(num_machines, w, G, test.order)
     else:
          
-        naive_cost, _ = naive_v2(G, w, num_machines)
+        naive_cost, _ = get_cost_naive_2(G, w, num_machines)
  
     # Run the iterative heuristic
-    for i in range(iterations):
+    for _ in range(iterations):
 
         # Update pseudosize
         if homogeneous:
@@ -142,10 +139,22 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, naive_version=2, 
 
 
 
+def compare_naive_versions(num_machines, w, G, verbose=False):
 
-def compute_cost(w, t, s):
-    total_cost = 0
-    for j in range(len(s)):
-        total_cost += (t[j][1] + (w[j] * s[j]))
-    return total_cost
+    s = [1 for i in range(len(w))]
+    tie_breaking_rule = 2
+
+    # Get initial ordering using modified ETF
+    test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+
+    naive_cost1 = get_cost_naive_1(num_machines, w, G, test.order)
+    naive_cost2, _ = get_cost_naive_2(num_machines, w, G)
+
+    return naive_cost1, naive_cost2, test.order
+
+# def compute_cost(w, t, s):
+#     total_cost = 0
+#     for j in range(len(s)):
+#         total_cost += (t[j][1] + (w[j] * s[j]))
+#     return total_cost
 
