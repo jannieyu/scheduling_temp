@@ -55,12 +55,12 @@ def init_solver(mrt, G, num_tasks, w, order, task_scaling=False):
         prev = constraint[0]
         m.Equation(c[prev] + (w[task] / s[task]) <= c[task])
 
-    # all tasks on single machine must run at same speed
-    if not task_scaling:
-        for machine in order:
-            for i in range(len(machine)):
-                if i != len(machine)-1:
-                    m.Equation(s[machine[i]] == s[machine[i+1]])
+    # # all tasks on single machine must run at same speed
+    # if not task_scaling:
+    #     for machine in order:
+    #         for i in range(len(machine)):
+    #             if i != len(machine)-1:
+    #                 m.Equation(s[machine[i]] == s[machine[i+1]])
 
     P = m.Var(value=5, lb=0)
     m.Equation(m.sum([w[j] * s[j] for j in range(num_tasks)]) == P)

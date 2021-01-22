@@ -47,33 +47,6 @@ def iterative_heuristic(num_tasks, num_machines, seed, homogeneous=True, verbose
     return obj_opt / test_heuristic.obj_value
 
 
-# def iterative_heuristic_no_ratio(num_machines, w, G, verbose=False):
-#     #G = rd(num_tasks, 0.05,seed)
-#     ## print(G.number_of_nodes())
-#     #w = [random.randint(1, 50) for _ in range(num_tasks)]
-#     s = [1 for i in range(len(w))]
-#     tie_breaking_rule = 2
-#     # Get ordering using modified ETF
-#     test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
-    
-#     #     # Initialize objective function value
-#     heuristic_opt = test.obj_value
-
-#     #     while True:
-#     # Get pseudosize, convert to speed
-#     s_prime = approx_speeds(G, test.order)
-
-#     # Get ordering using modified ETF
-#     test2 = Mod_ETF(G, w, s_prime, num_machines, tie_breaking_rule, plot=verbose)
-#     temp = get_objective_single_ordering(True, G, w, test2.order, plot=verbose, compare=False)
-#     opt_intervals, s_opt, obj_opt, _ = temp
-#     if obj_opt!= 10000000:
-#         return test2.obj_value / obj_opt
-#     else:
-#         return 10000000
-
-#     return
-
 
 def iterative_heuristic_no_ratio(num_machines, w, G, homogeneous=True, verbose=False):
     
@@ -108,7 +81,7 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, naive_version=2, 
     
     '''
     
-    s = [1 for _ in range(len(w))]
+    s = [1 for i in range(len(w))]
     tie_breaking_rule = 2
 
     # Get initial ordering using modified ETF
@@ -116,13 +89,16 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, naive_version=2, 
 
     # Run the naive method
     if naive_version == 1:
-        naive_cost = get_cost_naive_1(num_machines, w, G, test.order)
+        p_size = approx_psize_naive(G, test.order)
+        s_prime_naive = psize_to_speed(p_size)
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost = compute_cost(w, naive_t, s_prime_naive)
     else:
          
-        naive_cost, _ = get_cost_naive_2(G, w, num_machines)
+        naive_cost, _ = naive_v2(G, w, num_machines)
  
     # Run the iterative heuristic
-    for _ in range(iterations):
+    for i in range(iterations):
 
         # Update pseudosize
         if homogeneous:
@@ -138,23 +114,153 @@ def iterative_and_naive_heuristic_no_ratio(num_machines, w, G, naive_version=2, 
     return naive_cost, test.obj_value, test.order
 
 
-
-def compare_naive_versions(num_machines, w, G, verbose=False):
-
+def iterative_and_naive_heuristic_no_ratio_reversed(num_machines, w, G, naive_version=2, iterations=1, homogeneous=True, verbose=False):
+    '''
+    Runs both the iterative heuristic and the naive method for generating a schedule given G.
+    Main difference from the previous one is that Naive 2 does ETF, and then approximates pseudosize based on that.
+    :param num_machines: number of machines 
+    :param w:
+    :param G:
+    :param naive_version: If 1, we have the naive version that runs ETF first, 
+    if 2, we have the naive version that creates pseudosize first before running 
+    ETF. (2 is more naive)
+    :param iterations: Set the number of iterations that we run the iterative method for
+    :param homogeneous: If True, we solve for the problem in the homogeneous setting. 
+    :param verbose: If True, graphs will be plotted out.
+    
+    '''
+    
     s = [1 for i in range(len(w))]
     tie_breaking_rule = 2
 
     # Get initial ordering using modified ETF
     test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
 
-    naive_cost1 = get_cost_naive_1(num_machines, w, G, test.order)
-    naive_cost2, _ = get_cost_naive_2(num_machines, w, G)
+    # Run the naive method
+    if naive_version == 1:
+        p_size = approx_psize_naive(G, test.order)
+        s_prime_naive = psize_to_speed(p_size)
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost = compute_cost(w, naive_t, s_prime_naive)
+    else:
+         
+        psize = [len(nx.algorithms.dag.descendants(G, task))+1 for task in range(len(G))]
+        s_prime_naive = psize_to_speed(psize)
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost = compute_cost(w, naive_t, s_prime_naive)
+ 
+    # Run the iterative heuristic
+    for i in range(iterations):
 
-    return naive_cost1, naive_cost2, test.order
+        # Update pseudosize
+        if homogeneous:
+            p_size,_ = approx_psize_homogeneous(G, test.order, test.h, test.t)
+        else:
+            p_size,_ = approx_psize_heterogeneous(G, test.order, test.t)
 
-# def compute_cost(w, t, s):
-#     total_cost = 0
-#     for j in range(len(s)):
-#         total_cost += (t[j][1] + (w[j] * s[j]))
-#     return total_cost
+        s = psize_to_speed(p_size)
+
+        # Construct new ordering
+        test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+
+    return naive_cost, test.obj_value, test.order
+
+
+def iterative_and_naive_heuristic_no_ratio_expanded(num_machines, w, G, naive_version=2, iterations=1, homogeneous=True, verbose=False):
+    '''
+    Runs both the iterative heuristic and the naive method for generating a schedule given G.
+    :param num_machines: number of machines 
+    :param w:
+    :param G:
+    :param naive_version: If 1, we have the naive version that runs ETF first, 
+    if 2, we have the naive version that creates pseudosize first before running 
+    ETF. (2 is more naive)
+    :param iterations: Set the number of iterations that we run the iterative method for
+    :param homogeneous: If True, we solve for the problem in the homogeneous setting. 
+    :param verbose: If True, graphs will be plotted out.
+    
+    '''
+    
+    s = [1 for i in range(len(w))]
+    tie_breaking_rule = 2
+
+    # Get initial ordering using modified ETF
+    test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+
+    # Run the naive method
+    if naive_version == 1:
+        p_size = approx_psize_naive(G, test.order)
+        s_prime_naive = psize_to_speed(p_size)
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost = compute_cost(w, naive_t, s_prime_naive)
+        for i in range(iterations):
+
+            # Update pseudosize
+            if homogeneous:
+                p_size,_ = approx_psize_homogeneous(G, test.order, test.h, test.t)
+            else:
+                p_size,_ = approx_psize_heterogeneous(G, test.order, test.t)
+
+            s = psize_to_speed(p_size)
+
+            # Construct new ordering
+            test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+
+        return naive_cost, test.obj_value, test.order
+    elif naive_version ==2:
+        psize = [len(nx.algorithms.dag.descendants(G, task))+1 for task in range(len(G))] 
+        s_prime_naive = psize_to_speed(p_size)
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost = compute_cost(w, naive_t, s_prime_naive)
+        for i in range(iterations):
+
+            # Update pseudosize
+            if homogeneous:
+                p_size,_ = approx_psize_homogeneous(G, test.order, test.h, test.t)
+            else:
+                p_size,_ = approx_psize_heterogeneous(G, test.order, test.t)
+
+            s = psize_to_speed(p_size)
+
+            # Construct new ordering
+            test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+
+        return naive_cost, test.obj_value, test.order
+    else:
+        psize = approx_psize_naive(G, test.order)
+        s_prime_naive = psize_to_speed(psize)
+        # print("naive1 speed = \n", s_prime_naive) 
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost1 = compute_cost(w, naive_t, s_prime_naive)
+        
+        psize = [len(nx.algorithms.dag.descendants(G, task))+1 for task in range(len(G))] 
+        s_prime_naive = psize_to_speed(psize)
+        # print("naive2 speed = \n", s_prime_naive) 
+        naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(test.order))
+        naive_cost2 = compute_cost(w, naive_t, s_prime_naive)
+        for i in range(iterations):
+
+            # Update pseudosize
+            if homogeneous:
+                p_size,_ = approx_psize_homogeneous(G, test.order, test.h, test.t)
+            else:
+                p_size,_ = approx_psize_heterogeneous(G, test.order, test.t)
+
+            s = psize_to_speed(p_size)
+
+            # Construct new ordering
+            test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+
+        return naive_cost1, naive_cost2, test.obj_value, test.order
+ 
+    # Run the iterative heuristic
+    
+
+
+
+def compute_cost(w, t, s):
+    total_cost = 0
+    for j in range(len(s)):
+        total_cost += (t[j][1] + (w[j] * s[j]))
+    return total_cost
 
