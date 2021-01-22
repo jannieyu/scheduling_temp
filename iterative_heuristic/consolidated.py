@@ -47,33 +47,6 @@ def iterative_heuristic(num_tasks, num_machines, seed, homogeneous=True, verbose
     return obj_opt / test_heuristic.obj_value
 
 
-# def iterative_heuristic_no_ratio(num_machines, w, G, verbose=False):
-#     #G = rd(num_tasks, 0.05,seed)
-#     ## print(G.number_of_nodes())
-#     #w = [random.randint(1, 50) for _ in range(num_tasks)]
-#     s = [1 for i in range(len(w))]
-#     tie_breaking_rule = 2
-#     # Get ordering using modified ETF
-#     test = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
-    
-#     #     # Initialize objective function value
-#     heuristic_opt = test.obj_value
-
-#     #     while True:
-#     # Get pseudosize, convert to speed
-#     s_prime = approx_speeds(G, test.order)
-
-#     # Get ordering using modified ETF
-#     test2 = Mod_ETF(G, w, s_prime, num_machines, tie_breaking_rule, plot=verbose)
-#     temp = get_objective_single_ordering(True, G, w, test2.order, plot=verbose, compare=False)
-#     opt_intervals, s_opt, obj_opt, _ = temp
-#     if obj_opt!= 10000000:
-#         return test2.obj_value / obj_opt
-#     else:
-#         return 10000000
-
-#     return
-
 
 def iterative_heuristic_no_ratio(num_machines, w, G, homogeneous=True, verbose=False):
     
