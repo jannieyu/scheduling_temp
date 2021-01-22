@@ -4,7 +4,7 @@ import numpy as np
 from makespan_energy.visualization_util import make_graph_visual
 
 
-def random_dag(n, p, seed=1, plot=False):
+def er_dag(n, p, seed, plot=False):
     """
     Adds edges by erdos renyi.
     Takes node, gets nodes higher than it in ordinality, number = k, and then bin(k, p) to determine no of children,
