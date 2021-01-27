@@ -1,5 +1,3 @@
-from conjecture.all_valid_orderings import *
-
 from conjecture.optimization_functions import *
 import networkx as nx
 
