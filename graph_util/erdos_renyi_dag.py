@@ -1,7 +1,7 @@
 import networkx as nx
 import random
 import numpy as np
-from makespan_energy.visualization_util import make_graph_visual
+from graph_util.visualization_util import make_graph_visual
 
 
 def er_dag(n, p, seed, plot=False):

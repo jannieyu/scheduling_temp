@@ -5,9 +5,9 @@ import plotly.figure_factory as ff
 from fractions import Fraction as frac
 
 
-def init_solver(mrt, G, num_tasks, w, order, task_scaling=False):
+def init_ordering_solver(mrt, G, num_tasks, w, order, task_scaling=False):
     """
-    prepares the optimization equation by adding the necessary constraints
+    prepares the solver (given ordering) by adding the necessary constraints
     :param mrt: Boolean variable that is True if objective is to optimize for
                 MRT + E, False if objective is to optimize Makespan + E.
     :param G: DAG to schedule
@@ -88,10 +88,9 @@ def init_solver(mrt, G, num_tasks, w, order, task_scaling=False):
 
     return m, s, c
 
-
-def init_opt_solver(mrt, G, num_tasks, num_machines, w):
+def init_relaxed_opt_solver(mrt, G, num_tasks, num_machines, w):
     """
-    prepares the optimization equation by adding the necessary constraints
+    prepares the relaxed optimal solver by adding the necessary constraints
     :param mrt: Boolean variable that is True if objective is to optimize for
                 MRT + E, False if objective is to optimize Makespan + E.
     :param G: DAG to schedule
@@ -119,11 +118,8 @@ def init_opt_solver(mrt, G, num_tasks, num_machines, w):
         c[i].value = 0
         c[i].lower = 0
 
+    # relaxation of variables to take on a value in [0,1]
     x = [[m.Var(0,lb=0,ub=1) for j in range(num_tasks)] for i in range(num_machines)]
-
-    # #Yu's constraints that you can uncomment
-    # p = [[m.Var(0,lb=0,ub=1, integer=True) for j in range(num_tasks)] for j_prime in range(num_tasks)]
-    # b = [[m.Var(0,lb=0,ub=1, integer=True) for j in range(num_tasks)] for j_prime in range(num_tasks)]
 
     # 1a
     # each task will be assigned to exactly one machine
@@ -145,22 +141,6 @@ def init_opt_solver(mrt, G, num_tasks, num_machines, w):
     P = m.Var(value=5, lb=0)
     MRT = m.Var(value=5, lb=0)
 
-    # # Yu's constraints that you can uncomment
-    # for j_prime in range(num_tasks):
-    #     for j in range(num_tasks):
-    #         if j != j_prime:
-    #             m.Equation(m.sum([x[i][j] * x[i][j_prime] for i in range(num_machines)]) == p[j][j_prime])
-
-    # for j_prime in range(num_tasks):
-    #     for j in range(num_tasks):
-    #         if j != j_prime:
-    #             m.Equation(p[j][j_prime] * (c[j] - c[j_prime] + (w[j_prime] / s[j_prime])) <= b[j][j_prime] * (
-    #                         M - c[j_prime] + (w[j_prime] / s[j_prime])))
-    #             m.Equation(b[j][j_prime] * (c[j_prime] + (w[j]/s[j])) <= p[j][j_prime] * c[j])
-    #             m.Equation(b[j][j_prime] <= p[j][j_prime])
-    #             b[j][j_prime] = m.if3(b[j_prime][j] - 1, 1, 0)
-
-
     # Total load assigned to each machine should not be greater than the makespan
     for i in range(num_machines):
         m.Equation(m.sum([w[j] * x[i][j] / s[j] for j in range(num_tasks)]) <= M)
@@ -181,12 +161,6 @@ def init_opt_solver(mrt, G, num_tasks, num_machines, w):
     else:
 
         m.Obj(P + M) # Objective
-
-
-    # Old Objective
-    # m.Obj(sum([int(v[i]) / s[i] + s[i] for i in range(len(v))]))
-
-    # objective for mean completion time
 
     return x, m, s, c
 
@@ -345,20 +319,3 @@ def plot_gantt(task_metadata, objective_value, color_palette):
     fig.show("notebook")
     return color_palette
 
-
-if __name__ == "__main__":
-    dag = nx.DiGraph()
-    dag.add_nodes_from(range(9))
-    dag.add_edges_from([(0, 2), (2, 3), (2, 4), (3, 5), (4, 5), (5, 6), (6, 7), (7, 8)])
-
-    # Sample test
-    order = [[0, 2, 3, 5, 6, 7, 8], [4, 1]]
-    v = [9, 1, 8, 5, 2, 4, 3, 2, 1]
-    m, s, c = init_solver(dag, v, order)
-    task_processing_time, ending_time, intervals, obj = solver_results(s, m, c)
-    task_metadata = make_task_metadata(order, 9, intervals)
-    plot_gantt(task_metadata, obj)
-    print("finished test hopefully it worked")
-
-
-    s_i + p_i / s_i

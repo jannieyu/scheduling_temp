@@ -3,11 +3,14 @@ import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
-
 from copy import deepcopy
 from itertools import zip_longest
 
-def approx_psize_naive(G, order):
+def approx_psize_naive1(G, order):
+    '''
+    Naively compute pseudosize to be proportional to the number of tasks on its
+    machine only.
+    '''
     num_tasks = len(G)
     num_machines = len(order)
     p = [0 for _ in range(num_tasks)]
@@ -27,65 +30,10 @@ def approx_psize_naive(G, order):
             # for d in list(nx.algorithms.dag.descendants(G, curr_task)):
             #     if d not in dependencies:
             #         dependencies.append(d)
-
+            assert(len(dependencies) == len(order[i]) - j)
             p[curr_task] = len(dependencies)
 
     return p
-
-def approx_psize_heterogeneous(G, order, interval, verbose=True):
-
-    num_tasks = len(G)
-    num_machines = len(order)
-    psize = [0 for _ in range(num_tasks)]
-
-    for curr_machine in range(num_machines):
-        for j in order[curr_machine]:
-
-            overlap_counter = [0 for _ in range(num_machines)]
-            overlap_counter[curr_machine] += 1
-            concurr_tasks = []
-            dependencies = []
-            dependencies_count = 0
-            # curr_start = float(interval[j][0].__round__(1))
-            # curr_end = float(interval[j][1].__round__(1))
-
-            curr_start = interval[j][0]
-            curr_end = interval[j][1]
-
-            psize[j] += 1
-            for d in list(nx.algorithms.dag.descendants(G, j)):
-                if d not in dependencies:
-                    dependencies.append(d)
-                    dependencies_count += 1
-
-            for m in range(num_machines):
-                if m != curr_machine:
-
-                    for other_j in order[m]:
-
-                        other_start = interval[other_j][0]
-                        other_end = interval[other_j][1]
-                      
-                        if not (other_end <= curr_start):
-                            if not (curr_end <= other_start):
-                                concurr_tasks.append(other_j)
-                                end = min(curr_end, other_end)
-                                start = max(curr_start, other_start)
-                                # psize[j] += (end - start)/ (curr_end - curr_start)
-                                psize[j] += 1
-
-                                for d in list(nx.algorithms.dag.descendants(G, other_j)):
-                                    if d not in concurr_tasks:
-                                        if d not in dependencies:
-                                            dependencies.append(d)
-                                            dependencies_count += 1
-
-                                if overlap_counter[m] == 0:
-                                    overlap_counter[m] = 1
-
-            psize[j] += dependencies_count
-            psize[j] /= sum(overlap_counter)
-    return psize
 
 def approx_psize_homogeneous(G, order, h, interval, verbose=True):
 
@@ -113,20 +61,20 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
 
             while checking_sharing_subset != []:
                 task = checking_sharing_subset[0]
-                #print("Task is ", task)
+                
                 checking_sharing_subset.pop(0)
                 sharing_subset.append(task)
                 next_dependencies = dependencies_in_next_task_set(G, order, h, interval_group, x1, task)
-                #print("next dependencises is ", next_dependencies)
+               
                 for d in next_dependencies:
                     if d not in shared_children:
                         shared_children.append(d)
                 newly_added_sharing_subset = []
                 if len(next_dependencies) != 0:
                     for other_task in curr_task_set_copy:
-                        #print("other task is ", other_task)
+                        
                         next_other_dependencies = dependencies_in_next_task_set(G, order, h, interval_group, x1, other_task)
-                        #print("next other dependencies is ",next_other_dependencies)
+                        
                         for other_d in next_other_dependencies:
                             if other_d in next_dependencies:
                                 if other_task not in checking_sharing_subset:

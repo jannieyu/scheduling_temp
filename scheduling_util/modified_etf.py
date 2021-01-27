@@ -3,8 +3,7 @@ import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
-from conjecture.all_valid_orderings import *
-from conjecture.optimization_functions import *
+from scheduling_util.optimization_functions import *
 
 
 class Mod_ETF:

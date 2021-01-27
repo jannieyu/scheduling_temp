@@ -16,7 +16,7 @@ def make_graph_visual(G, num_tasks):
     if nx.check_planarity(G)[0]:
         pos=nx.planar_layout(G)
     else:
-        pos=nx.circular_layout(G)
+        pos=nx.draw_kamada_kawai(G)
 
     nx.draw(G, pos, nodecolor='y',edge_color='k')
     nx.draw_networkx_labels(G, pos, labels, font_size=20, font_color='y')
