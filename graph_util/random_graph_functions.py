@@ -13,7 +13,7 @@ def random_all_fork(num_tasks, seed=None):
 
     if not seed:
         seed = random.randint(0, 10000000)
-        print(seed)
+      
     tree = nx.generators.trees.random_tree(num_tasks, seed)
     directed_graph = tree.to_directed()
     random.seed(seed+1)
@@ -50,7 +50,7 @@ def random_all_join(num_tasks, seed=None):
 
     if not seed:
         seed = random.randint(0, 10000000)
-        print(seed)
+        
 
 
     all_fork_tree = random_all_fork(num_tasks, seed)

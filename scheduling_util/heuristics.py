@@ -11,19 +11,22 @@ import random
 import copy
 
 
-def heuristics(G, num_machines, naive_version=3, iterations=1, verbose=False):
+def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
     '''
     Runs both the iterative heuristic and the naive method(s) for generating a 
     schedule given G.
     :param G:
     :param num_machines: number of machines 
     :param w:
-    :param naive_version: If 1, we will return naive cost 1, which approx. psize 
-    based on number of tasks waiting on the same machine. If 2, we have the 
-    naive cost 1, which approx. psize based on number of descendants. 
-    (2 is more naive). If 3, we will perform and return both.
+    :param naive_version: 
+    
+    
+    If 1, we will return heuristic cost, naive 1 cost
+    If 2, we will return heuristic cost, naive 2 cost
+    If 3, we will return heuristic cost, naive 1 cost, naive 2 cost
+    Otherwise (default), we will return heuristic cost only.
+
     :param iterations: Set the number of iterations that we run the iterative method
-    :param homogeneous: If True, we solve for the problem in the homogeneous setting. 
     :param verbose: If True, graphs will be plotted out.
     
     '''
@@ -63,7 +66,7 @@ def heuristics(G, num_machines, naive_version=3, iterations=1, verbose=False):
         s = psize_to_speed(p_size)
         etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
 
-    return naive1_cost, naive2_cost, etf.obj_value
+    return naive1_cost, naive2_cost, etf.obj_value, etf
 
 def compute_cost(w, t, s):
     '''

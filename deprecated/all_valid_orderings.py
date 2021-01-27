@@ -64,9 +64,3 @@ def check_valid_topological_ordering(order, graph):
                 return False
     return True
 
-
-if __name__ ==  "__main__":
-    dag = nx.DiGraph()
-    dag.add_nodes_from(range(5))
-    dag.add_edges_from([(0,1), (1,2), (0,2), (2, 3), (3, 4)])
-    print(get_orderings(dag, 3))
