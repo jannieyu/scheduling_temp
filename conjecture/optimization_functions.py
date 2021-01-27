@@ -247,19 +247,12 @@ def solver_results(x, s, m, c, w, order=False,  verbose=True):
                   str(intervals[i]) + " Task process time: " + str(task_process_time[i]))
         print('Objective: ' + str(m.options.objfcnval))
 
-
     if x != None:
         order = create_order(x, c)
     else:
         order = None
 
     return order, task_process_time, ending_time, intervals, speeds, float(frac(m.options.objfcnval).__round__(5))
-
-
-
-
-
-
 
 def create_order(x, c):
 

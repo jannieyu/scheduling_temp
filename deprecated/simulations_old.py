@@ -4,6 +4,8 @@ import numpy as np
 import random
 import math
 import matplotlib.pyplot as plt
+from conjecture.all_valid_orderings import *
+from conjecture.optimization_functions import *
 
 
 class Test_old:
@@ -54,8 +56,7 @@ class Test_old:
 
 
         self.cost = self.compute_cost()
-        # self.graph_visual = self.make_graph_visual()
-        self.assignment_visual = self.make_assignment_visual()
+
 
         self.time_chunks = self.make_time_chunks()
 
@@ -198,9 +199,6 @@ class Test_old:
         plt.show()
 
 
-
-        
-
     def make_graph_visual(self):
         G = self.G
         labels = {}
@@ -242,7 +240,11 @@ class Test_old:
             self.G.add_weighted_edges_from([(source, dest, weight)])
 
         for node in list(self.G.nodes):
-            self.remaining_nodes_list[node] = len(nx.algorithms.dag.descendants(self.G, node)) + 1
+            eff_dependency = self.task_units[node]
+            for d in nx.algorithms.dag.descendants(self.G, node):
+                eff_dependency += self.task_units[d]
+
+            self.remaining_nodes_list[node] = eff_dependency
 
         # Assert that graph is directed and acyclic
         if not nx.algorithms.dag.is_directed_acyclic_graph(self.G):
@@ -526,9 +528,6 @@ class Test_old:
                 elif self.remaining_nodes_list[node] == max_remaining:
                     P.append(node)
 
-           
-
-
             num_children = {}
             children = []
             for node in P:
@@ -538,33 +537,13 @@ class Test_old:
             max_children = max(children)
 
             P_prime = [key for key in num_children if num_children[key] == max_children]
-          
+    
 
         
             # picked_n = random.choice(P_prime)
             picked_m = None
 
-            
-            # earliest_time = np.inf
 
-            # for machine in range(self.m):
-            #     if len(machine_task_list[machine]) != 0:
-            #         last_node = machine_task_list[len(machine_task_list) - 1]
-            #         if last_node in self.G.predecessors(picked_n):
-            #             picked_m = machine
-            #             break
-
-            #     machine_task_start = machine_etf[machine]
-            #     task_start = task_etf[picked_n]
-
-            #     if task_start > machine_task_start:
-            #         machine_task_start = task_start
-
-            #     # Check if this task_start time for a task on a machine is
-            #     # a minimum across the feasible machines
-            #     if machine_task_start < earliest_time:
-            #         earliest_time = machine_task_start
-            #         picked_m = machine
             possible_tasks = []
             global_earliest_time = np.inf
             for j in P_prime:
@@ -710,31 +689,8 @@ class Test_old:
             P_prime = [key for key in num_children if num_children[key] == max_children]
           
 
-        
-            # picked_n = random.choice(P_prime)
             picked_m = None
 
-            
-            # earliest_time = np.inf
-
-            # for machine in range(self.m):
-            #     if len(machine_task_list[machine]) != 0:
-            #         last_node = machine_task_list[len(machine_task_list) - 1]
-            #         if last_node in self.G.predecessors(picked_n):
-            #             picked_m = machine
-            #             break
-
-            #     machine_task_start = machine_etf[machine]
-            #     task_start = task_etf[picked_n]
-
-            #     if task_start > machine_task_start:
-            #         machine_task_start = task_start
-
-            #     # Check if this task_start time for a task on a machine is
-            #     # a minimum across the feasible machines
-            #     if machine_task_start < earliest_time:
-            #         earliest_time = machine_task_start
-            #         picked_m = machine
             possible_tasks = []
             global_earliest_time = np.inf
             for j in P_prime:
@@ -813,10 +769,6 @@ class Test_old:
                     
     
         return machine_task_list[0]
-
-
-
-
 
 
 

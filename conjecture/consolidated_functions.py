@@ -141,10 +141,7 @@ def get_optimal_schedule(mrt, dag, num_machines, weights, plot=False, verbose=Fa
         metadata1 = make_task_metadata(order, num_tasks, intervals1)
         colors = plot_gantt(metadata1, obj_value1, color_palette)
 
-
-
-    return {'intervals_task_scaling': intervals1, 'speeds_task_scaling': speeds1, 'objective_task_scaling': obj_value1,
-           'order': order}
+    return intervals1, speeds1, obj_value1, order
 
 
 
