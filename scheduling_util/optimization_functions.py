@@ -164,6 +164,116 @@ def init_relaxed_opt_solver(mrt, G, num_tasks, num_machines, w):
 
     return x, m, s, c
 
+
+def init_opt_solver(G, num_tasks, num_machines, w):
+    """
+    prepares the optimization equation by adding the necessary constraints
+    :param mrt: Boolean variable that is True if objective is to optimize for
+                MRT + E, False if objective is to optimize Makespan + E.
+    :param G: DAG to schedule
+    :param num_tasks: total number of tasks
+    :param w: weights
+    :return: m, s, c
+    """
+    m = GEKKO()
+
+    # Use IPOPT solver (default)
+    m.options.SOLVER = 3
+
+    # Change to parallel linear solver
+    #m.solver_options = ['minlp_max_iter_with_int_sol 10000']
+
+    # create array
+    s = m.Array(m.Var, num_tasks)
+    for i in range(num_tasks):
+        s[i].value = 2.0
+        s[i].lower = 0
+
+    # define completion time of each task
+    c = m.Array(m.Var, num_tasks)
+    for i in range(num_tasks):
+        c[i].value = 0
+        c[i].lower = 0
+
+    x = [[m.Var(0,lb=0,ub=1) for j in range(num_tasks)] for i in range(num_machines)]
+
+    #Yu's constraints that you can uncomment
+    p = [[m.Var(0,lb=0,ub=1, integer=True) for j in range(num_tasks)] for j_prime in range(num_tasks)]
+    b = [[m.Var(0,lb=0,ub=1, integer=True) for j in range(num_tasks)] for j_prime in range(num_tasks)]
+
+    # 2a
+    # each task will be assigned to exactly one machine
+    for j in range(num_tasks):
+        m.Equation(m.sum([x[i][j] for i in range(num_machines)]) == 1)
+
+    # 2b
+    # task's completion time must be later than the time to run task itself
+    for j in range(num_tasks):
+        m.Equation( w[j] / s[j]  <= c[j])
+
+    # 2c
+    # task must start later than all ancestors
+    for j in range(num_tasks):
+        for k in nx.algorithms.ancestors(G, j):
+            m.Equation(c[k] + (w[j] / s[j]) <= c[j])
+
+    P = m.Var(value=5, lb=0)
+    MRT = m.Var(value=5, lb=0)
+
+    
+    # # Total load assigned to each machine should not be greater than the makespan
+    # for i in range(num_machines):
+    #     m.Equation(m.sum([w[j] * x[i][j] / s[j] for j in range(num_tasks)]) <= M)
+
+    # # 1e (define M in objective function)
+    # for j in range(num_tasks):
+    #     m.Equation(c[j] <= M)
+
+    # define MRT
+    # constraint in place of 2d, 2e
+    m.Equation(m.sum([c[j] for j in range(num_tasks)]) == MRT)
+
+    
+    # 2f
+    # define P in objective function
+    m.Equation(m.sum([w[j] * s[j] for j in range(num_tasks)]) == P)
+
+    # define MRT
+    m.Equation(m.sum([c[j] for j in range(num_tasks)]) == MRT)
+
+
+
+    # 2g
+    for j_prime in range(num_tasks):
+        for j in range(num_tasks):
+            if j != j_prime:
+                m.Equation(m.sum([x[i][j] * x[i][j_prime] for i in range(num_machines)]) == p[j][j_prime])
+
+    for j_prime in range(num_tasks):
+        for j in range(num_tasks):
+            if j != j_prime:
+                m.Equation(p[j][j_prime] * (c[j] - c[j_prime] + (w[j_prime] / s[j_prime])) <= b[j][j_prime] * (
+                            MRT - c[j_prime] + (w[j_prime] / s[j_prime])))
+                m.Equation(b[j][j_prime] * (c[j_prime] + (w[j]/s[j])) <= p[j][j_prime] * c[j])
+                m.Equation(b[j][j_prime] <= p[j][j_prime])
+                b[j][j_prime] = m.if3(b[j_prime][j] - 1, 1, 0)
+
+
+
+
+    m.Obj(MRT + P)
+
+    
+
+
+    # Old Objective
+    # m.Obj(sum([int(v[i]) / s[i] + s[i] for i in range(len(v))]))
+
+    # objective for mean completion time
+
+    return x, m, s, c
+
+
 def get_resource_constraints(order):
     """
     gets resource constraints for a given ordering
