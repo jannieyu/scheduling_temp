@@ -78,3 +78,30 @@ def relaxed_opt_schedule(mrt, dag, num_machines, weights, plot=False, verbose=Fa
         colors = plot_gantt(metadata1, obj_value1, color_palette)
 
     return intervals1, speeds1, obj_value1, order
+
+def opt_schedule(dag, num_machines, weights, plot=False, verbose=False):
+    """
+    gets the objective dict for a single dict
+    :param mrt: Boolean variable that is True if objective is to optimize for
+                MRT + E, False if objective is to optimize Makespan + E.
+    :param dag: DAG to schedule
+    :param weights: List of task weights, or size of each task
+
+    :return:
+    """
+    num_tasks = dag.number_of_nodes()
+    color_palette = [(0, 0, 255 / 256), (0, 255 / 256, 0), (255 / 256, 255 / 256, 0), (255 / 256, 0, 0),
+                     (255 / 256, 128 / 256, 0),
+                     (255 / 256, 0, 127 / 256), (0, 255 / 256, 255 / 256), (127 / 256, 0, 255 / 256),
+                     (128 / 256, 128 / 256, 128 / 256),
+                     (255 / 256, 255 / 256, 255 / 256), (0, 0, 0)]
+    # get task scaling ordering
+    x1, m1, s1, c1 = init_opt_solver(dag, num_tasks, num_machines, weights)
+    order, task_process_time1, ending_time1, intervals1, speeds1, obj_value1 = solver_results(x1, s1, m1, c1, weights, verbose)
+    # print("Order is ", order)
+
+    if plot:
+        metadata1 = make_task_metadata(order, num_tasks, intervals1)
+        colors = plot_gantt(metadata1, obj_value1, color_palette)
+
+    return intervals1, speeds1, obj_value1, order
