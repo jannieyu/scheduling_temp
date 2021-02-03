@@ -60,13 +60,111 @@ def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
         naive2_etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
         naive2_cost = naive2_etf.obj_value
         
-    # run iterative heuristic
-    for i in range(iterations):
-        p_size,_ = approx_psize_homogeneous(G, etf.order, etf.h, etf.t)
+    # run iterative heuristic once
+    p_size,_ = approx_psize_homogeneous(G, etf.order, etf.h, etf.t)
+    s = psize_to_speed(p_size)
+    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+    
+    for i in range(iterations -1):
+        s = [1 for _ in range(len(G))]
+        t = get_t(etf.order, G, len(s), s)
+        p_size,_ = approx_psize_homogeneous(G, etf.order, etf.h, t)
         s = psize_to_speed(p_size)
         etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+        
 
     return naive1_cost, naive2_cost, etf.obj_value, etf
+
+
+def get_t(order, graph, task_number, task_process_time):
+    """
+    returns t which is basically time that each task starts at before speed scaling
+    :param order: task-machine assignment 2d list
+    :param graph: dag used to schedule
+    :param task_number: number of tasks in dag
+    :return: t (list)
+    """
+    # initialize t with starting and ending times for each task.
+    t = [[0, 0] for i in range(task_number)]
+
+    # initialize scheduled dict for each task to free
+    scheduled = {}
+    for task in range(task_number):
+        scheduled[task] = "free"
+
+    task_machine_map = {}
+    for machine in range(len(order)):
+        for task in order[machine]:
+            task_machine_map[task] = machine
+
+    # Initialize Array of starting times for each machine
+    starting_times = [0.0] * len(order)
+
+    # Initialize indices of task currently being scheduled
+    curr_task_on_machine = [0] * len(order)
+
+    machine_cycle_count = 0
+
+    while not all(v=="blocked" for v in list(scheduled.values())):
+  
+        machine_cycle_count += 1
+        machine = machine_cycle_count % len(order)
+        # order for that particular machine
+        task_lst = order[machine]
+        # current task index to look at
+        task_index = curr_task_on_machine[machine]
+
+
+        while task_index >= len(task_lst):
+                machine_cycle_count += 1
+                machine = machine_cycle_count % len(order)
+
+                # order for that particular machine
+                task_lst = order[machine]
+                # current task index to look at
+                task_index = curr_task_on_machine[machine]
+
+        # current task
+        task = task_lst[task_index]
+        parents = list(graph.predecessors(task))
+
+ 
+        # machine the task is scheduled on
+        # machine = task_machine_map[task]
+        # print("task before loop is ", task)
+        child_ready_to_schedule = parents_scheduled(parents, scheduled)
+
+ 
+        if (len(parents) == 0 or child_ready_to_schedule) and (scheduled[task] == 'free'):
+            # print("Task being scheduled on is ", task)
+            if len(parents) != 0:
+                # print("Task in second loop is ", task)
+                max_finish_time = max(t[i][1] for i in parents)
+                t[task][0] = max(starting_times[machine], max_finish_time)
+                t[task][1] = t[task][0] + task_process_time[task]
+            else:
+                t[task][0] = starting_times[machine]
+                t[task][1] = starting_times[machine] + task_process_time[task]
+            scheduled[task] = "blocked"
+            curr_task_on_machine[machine] += 1
+    
+        starting_times[machine] = t[task][1]
+
+    return t
+
+
+def parents_scheduled(parents, scheduled):
+    """
+    helper function to indicate whether the parents of a node are blocked or not
+    :param parents: list of nodes
+    :param scheduled: dictionary indicating blocked or not
+    :return: boolean, True or False, True if all parents are blocked
+    """
+    for node in parents:
+        if scheduled[node] == 'free':
+            return False
+    return True
+
 
 def compute_cost(w, t, s):
     '''
