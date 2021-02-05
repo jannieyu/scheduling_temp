@@ -42,7 +42,9 @@ class Mod_ETF:
 
         # Use speeds to define pseudosizes
         self.pseudosize = [0 for _ in range(self.num_tasks)]
-        for j in list(self.G.nodes):
+        print(self.G)
+        for j in range(self.num_tasks):
+            
             self.pseudosize[j] = (s[j])**2
 
         # Construct group assignment f

@@ -286,7 +286,7 @@ def native_rescheduler(G, s, w, order):
 
 
 
-def heterogeneous_heuristic(G, num_machines, w, verbose):
+def general_heuristic(G, num_machines, w, verbose):
     
 
     s = [1 for _ in range(len(G))]
