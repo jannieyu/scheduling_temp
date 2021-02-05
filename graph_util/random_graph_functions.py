@@ -22,7 +22,7 @@ def random_all_fork(num_tasks, seed=None):
     all_fork_tree = make_rooted_tree(directed_graph, root)
 
 
-    return all_fork_tree
+    return all_fork_tree, seed
 
 
 def make_rooted_tree(G, root):
@@ -53,9 +53,9 @@ def random_all_join(num_tasks, seed=None):
         
 
 
-    all_fork_tree = random_all_fork(num_tasks, seed)
+    all_fork_tree, _ = random_all_fork(num_tasks, seed)
     all_join_tree = all_fork_tree.reverse(copy=True)
-    return all_join_tree
+    return all_join_tree, seed
 
 
 def subgraphs_via_dfs(G):

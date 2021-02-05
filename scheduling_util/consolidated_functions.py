@@ -1,6 +1,6 @@
 from scheduling_util.optimization_functions import *
 import networkx as nx
-
+from scheduling_util.heuristics import *
 
 
 def opt_schedule_given_ordering(mrt, dag, weights, order, plot=False, compare=True):
@@ -98,10 +98,13 @@ def opt_schedule(dag, num_machines, weights, plot=False, verbose=False):
     # get task scaling ordering
     x1, m1, s1, c1 = init_opt_solver(dag, num_tasks, num_machines, weights)
     order, task_process_time1, ending_time1, intervals1, speeds1, obj_value1 = solver_results(x1, s1, m1, c1, weights, verbose)
+    
+    if order == []:
+        return None, None, None, None, None, None
     # print("Order is ", order)
-
+    
     if plot:
         metadata1 = make_task_metadata(order, num_tasks, intervals1)
         colors = plot_gantt(metadata1, obj_value1, color_palette)
-
-    return intervals1, speeds1, obj_value1, order
+    total_cost, time, energy = compute_cost(weights, intervals1, speeds1)
+    return intervals1, speeds1, obj_value1, order, time, energy

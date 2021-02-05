@@ -51,7 +51,7 @@ def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
         s_prime_naive = psize_to_speed(psize)
        
         naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(etf.order))
-        naive1_cost = compute_cost(w, naive_t, s_prime_naive)
+        naive1_cost, power, energy = compute_cost(w, naive_t, s_prime_naive)
     
     # run naive 2
     if naive_version == 2 or naive_version == 3:   
@@ -167,13 +167,14 @@ def parents_scheduled(parents, scheduled):
 
 
 def compute_cost(w, t, s):
-    '''
-    Compute the cost of the schedule given weights, time intervals, speed.
-    '''
-    total_cost = 0
+    
+    power = 0
+    energy = 0
     for j in range(len(s)):
-        total_cost += (t[j][1] + (w[j] * s[j]))
-    return total_cost
+        power += w[j] * s[j]
+        energy += t[j][1]
+    total_cost = power + energy
+    return total_cost, power, energy
 
 def native_rescheduler(G, s, w, order):
     '''
@@ -226,3 +227,78 @@ def native_rescheduler(G, s, w, order):
             machine_to_task_list.pop(machine)
 
     return t
+
+
+
+
+# def approx_psize_hetero(G, order, interval, verbose=True):
+
+# 	num_tasks = len(G)
+# 	num_machines = len(order)
+# 	psize = [0 for _ in range(num_tasks)]
+
+# 	for curr_machine in range(num_machines):
+# 		for j in order[curr_machine]:
+
+# 			overlap_counter = [0 for _ in range(num_machines)]
+# 			overlap_counter[curr_machine] += 1
+# 			concurr_tasks = []
+# 			dependencies = []
+	
+
+# 			curr_start = interval[j][0]
+# 			curr_end = interval[j][1]
+
+# 			psize[j] += 1
+
+#             # grab all descendants on DAG
+# 			for d in list(nx.algorithms.dag.descendants(G, j)):
+# 				dependencies.append(d)
+
+#             # grab concurrent tasks on other machines			
+# 			for m in range(num_machines):
+# 				if m != curr_machine:
+
+# 					for other_j in order[m]:
+
+# 						other_start = interval[other_j][0]
+# 						other_end = interval[other_j][1]
+
+# 						if not (other_end <= curr_start):
+# 							if not (curr_end <= other_start):
+# 								concurr_tasks.append(other_j)
+# 								end = min(curr_end, other_end)
+# 								start = max(curr_start, other_start)
+# 								psize[j] += (end - start)/ (curr_end - curr_start)
+
+# 								for d in list(nx.algorithms.dag.descendants(G, other_j)):
+# 									if d not in concurr_tasks:
+# 										if d not in dependencies:
+# 											dependencies.append(d)
+										
+
+# 								if overlap_counter[m] == 0:
+# 									overlap_counter[m] = 1
+
+# 			psize[j] += len(dependencies)
+# 			psize[j] /= sum(overlap_counter)
+# 	return psize
+
+
+
+def heterogeneous_heuristic(G, num_machines, w, verbose):
+    
+
+    s = [1 for _ in range(len(G))]
+    tie_breaking_rule = 2
+
+    # Get initial ordering using modified ETF
+    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+    # run iterative heuristic once
+    p_size = approx_psize_general(G, etf.order, etf.t, verbose)
+    s = psize_to_speed(p_size)
+    t = native_rescheduler(G, s, w, etf.order)
+    obj_val, power, energy = compute_cost(w, t, s)
+    
+    
+    return obj_val, power, energy, p_size, etf.order

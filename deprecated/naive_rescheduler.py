@@ -60,7 +60,7 @@ def get_cost_naive_1(num_machines, w, G, order):
     p_size = approx_psize_naive(G, order)
     s_prime_naive = psize_to_speed(p_size)
     naive_t = native_rescheduler(G, s_prime_naive, w, copy.deepcopy(order))
-    naive_cost = compute_cost(w, naive_t, s_prime_naive)
+    naive_cost, power, energy = compute_cost(w, naive_t, s_prime_naive)
 
     return naive_cost
 
@@ -76,7 +76,11 @@ def get_cost_naive_2(num_machines, w, G, verbose=False):
 
 
 def compute_cost(w, t, s):
-    total_cost = 0
+    
+    power = 0
+    energy = 0
     for j in range(len(s)):
-        total_cost += (t[j][1] + (w[j] * s[j]))
-    return total_cost
+        power += w[j] * s[j]
+        energy += t[j][1]
+    total_cost = power + energy
+    return total_cost, power, energy

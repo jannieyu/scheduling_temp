@@ -258,13 +258,7 @@ def init_opt_solver(G, num_tasks, num_machines, w):
                 m.Equation(b[j][j_prime] <= p[j][j_prime])
                 b[j][j_prime] = m.if3(b[j_prime][j] - 1, 1, 0)
 
-
-
-
     m.Obj(MRT + P)
-
-    
-
 
     # Old Objective
     # m.Obj(sum([int(v[i]) / s[i] + s[i] for i in range(len(v))]))
@@ -312,7 +306,7 @@ def solver_results(x, s, m, c, w, order=False,  verbose=True):
         # print("Did not work")
         # if order!=False:
             # print("Order is ", order)
-        return order, [-1]*len(s), [-1]*len(s), [-1,-1]*len(s),[-1]*len(s), 10000000
+        return [], [-1]*len(s), [-1]*len(s), [-1,-1]*len(s),[-1]*len(s), 10000000
 
     task_process_time = [frac(w[i] / frac(s[i].value[0])) for i in range(len(s))]
     ending_time = [frac(c[i].value[0]) for i in range(len(c))]

@@ -5,6 +5,8 @@ import math
 import matplotlib.pyplot as plt
 from copy import deepcopy
 from itertools import zip_longest
+import heapq
+from collections import defaultdict
 
 def approx_psize_naive1(G, order):
     '''
@@ -46,7 +48,7 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
     for x in range(len(interval)):
         start, _ = interval[x]
         interval_group[int(start)].append(x)
-    # print("Intervals is ", interval_group)
+   
     for x1 in range(len(interval_group) - 1, -1, -1):
         curr_task_set = interval_group[x1]
         curr_task_set_copy = curr_task_set.copy()
@@ -265,3 +267,87 @@ def psize_to_speed(psize):
 def speed_to_psize(speed):
     psize = [speed[i] ** 2 for i in range(len(speed))]
     return psize
+
+
+def map_task_to_next_task_on_same_machine(order):
+    hashmap = {}
+    for task_list in order:
+        for i in range(len(task_list)):
+            task = task_list[i]
+            if i != len(task_list) - 1:
+                next_task = task_list[i+1]
+                hashmap[task] = next_task
+            else:
+                hashmap[task] = None
+        
+
+    return hashmap
+
+def finish_time_groups(interval):
+    hashmap = defaultdict(list)
+    for i in range(len(interval)):
+        start, end = interval[i]
+        hashmap[end].append(i)
+    return hashmap
+
+def find_immediate_dependents(G, order, interval, next_task_map):
+    num_tasks = len(interval)
+    hashmap = {}
+    for task in range(num_tasks):
+        dependents = set()
+        next_task_on_same_machine = next_task_map[task]
+        if next_task_on_same_machine and interval[next_task_on_same_machine][0] == interval[task][1]:
+            dependents.add(next_task_on_same_machine)
+
+        for d in nx.descendants(G, task):
+            if interval[d][0] == interval[task][1]:
+                dependents.add(d)
+        hashmap[task] = dependents
+    return hashmap
+
+
+def approx_psize_general(G, order, interval, verbose=True):
+
+    num_tasks = len(G)
+    psize = [None for _ in range(num_tasks)]
+    scheduled = [False for _ in range(num_tasks)]
+    unscheduled_tasks = []
+    next_task_map = map_task_to_next_task_on_same_machine(order)
+    time_to_tasks_map = finish_time_groups(interval)
+    task_to_dependents_map = find_immediate_dependents(G, order, interval, next_task_map)
+
+    for i in range(num_tasks):
+        unscheduled_tasks.append((- interval[i][1], i))
+    heapq.heapify(unscheduled_tasks)
+    
+    while unscheduled_tasks:
+        _, task = heapq.heappop(unscheduled_tasks)
+    
+        if not scheduled[task]:
+            
+            parents = set([task])
+            all_dependents = task_to_dependents_map[task]
+
+            assert(task in time_to_tasks_map[interval[task][1]])
+
+            for concurr_task in time_to_tasks_map[interval[task][1]]:
+                if concurr_task != task:
+                    valid_parent = False
+                    concurr_task_dependents = task_to_dependents_map[concurr_task]
+                    for d in concurr_task_dependents:
+                        if d in all_dependents:
+                            valid_parent = True
+                            break
+                    if valid_parent:
+                        parents.add(concurr_task)
+                        for d in concurr_task_dependents:
+                            all_dependents.add(d)
+            assert(all([interval[c][0] == interval[task][1] for c in all_dependents]) is True)
+            assert(None not in [psize[c] for c in all_dependents])
+
+            for p in parents:
+                psize[p] = (sum([psize[c] for c in all_dependents]) + len(parents)) / len(parents)
+                scheduled[p] = True
+
+    return psize
+
