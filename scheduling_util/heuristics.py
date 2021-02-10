@@ -286,19 +286,19 @@ def native_rescheduler(G, s, w, order):
 
 
 
-def general_heuristic(G, num_machines, w, verbose):
+def general_heuristic(G, num_machines, w, iterations, verbose):
     
 
     s = [1 for _ in range(len(G))]
     tie_breaking_rule = 2
 
-    # Get initial ordering using modified ETF
-    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
-    # run iterative heuristic once
-    p_size = approx_psize_general(G, etf.order, etf.t, verbose)
-    s = psize_to_speed(p_size)
+    for i in range(iterations):
+        etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+        p_size = approx_psize_general(G, etf.order, etf.t, verbose)
+        s = psize_to_speed(p_size)
+
     t = native_rescheduler(G, s, w, etf.order)
-    obj_val, power, energy = compute_cost(w, t, s)
+    obj_val, time, energy = compute_cost(w, t, s)
     
     
-    return obj_val, power, energy, p_size, etf.order
+    return obj_val, time, energy, p_size, etf.order
