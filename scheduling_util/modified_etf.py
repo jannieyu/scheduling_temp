@@ -94,7 +94,7 @@ class Mod_ETF:
             mrt += self.t[j][1]
             energy += ((self.w[j] * self.power(self.s[j]))/ self.s[j])
             total_cost += (self.t[j][1] + ((self.w[j] * self.power(self.s[j]))/ self.s[j]))
-
+            
         self.mrt = mrt
         self.energy = energy
         return total_cost

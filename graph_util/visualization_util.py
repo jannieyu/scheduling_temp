@@ -18,7 +18,7 @@ def make_graph_visual(G, num_tasks):
     else:
         pos=nx.draw_kamada_kawai(G)
 
-    nx.draw(G, pos)
+    nx.draw(G, pos, node_color='k', node_size=500)
     nx.draw_networkx_labels(G, pos, labels, font_size=20, font_color='y')
     plt.axis('off')
     plt.show()

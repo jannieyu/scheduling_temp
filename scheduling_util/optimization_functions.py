@@ -119,7 +119,7 @@ def init_relaxed_opt_solver(mrt, G, num_tasks, num_machines, w):
         c[i].lower = 0
 
     # relaxation of variables to take on a value in [0,1]
-    x = [[m.Var(0,lb=0,ub=1) for j in range(num_tasks)] for i in range(num_machines)]
+    x = [[m.Var(0, lb=0, ub=1) for j in range(num_tasks)] for i in range(num_machines)]
 
     # 1a
     # each task will be assigned to exactly one machine
