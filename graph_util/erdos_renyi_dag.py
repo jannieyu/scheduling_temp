@@ -4,7 +4,7 @@ import numpy as np
 from graph_util.visualization_util import make_graph_visual
 
 
-def er_dag(n, p, seed, plot=False):
+def er_dag(n, p, seed=None, plot=False):
     """
     Adds edges by erdos renyi.
     Takes node, gets nodes higher than it in ordinality, number = k, and then bin(k, p) to determine no of children,
@@ -15,8 +15,9 @@ def er_dag(n, p, seed, plot=False):
     :param plot: optional, plots graph if true
     :return: random networkx dag G
     """
-    random.seed(seed)
-    np.random.seed(seed)
+    if not seed:
+        seed = random.randint(0, 10000000)
+    random.seed(seed+1)
     all_nodes = range(n)
     G = nx.DiGraph()
     G.add_nodes_from(all_nodes)
@@ -46,4 +47,4 @@ def er_dag(n, p, seed, plot=False):
         make_graph_visual(G, n)
     # Verify that graph is a dag
     # print(nx.is_directed_acyclic_graph(G))
-    return G
+    return G, seed
