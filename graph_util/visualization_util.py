@@ -2,6 +2,8 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
+import plotly.figure_factory as ff
+
 
 
 def make_graph_visual(G, num_tasks):

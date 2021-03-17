@@ -10,6 +10,17 @@ import math
 import random
 import copy
 
+def naive_2(G, num_machines):
+    
+    psize = [len(nx.algorithms.dag.descendants(G, task)) + 1 for task in range(len(G))] 
+    s = psize_to_speed(psize)
+    w = [1 for _ in range(len(G))]
+    tie_breaking_rule = 2
+
+    naive2_etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule)
+    naive2_cost = naive2_etf.obj_value
+
+    return naive2_cost
 
 def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
     '''
@@ -35,7 +46,7 @@ def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
     # the method to be run
     naive1_cost = None
     naive2_cost = None
-    heuristics = None
+    total_cost = None
     
     w = [1 for _ in range(len(G))]
     s = [1 for _ in range(len(G))]
@@ -43,7 +54,7 @@ def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
     tie_breaking_rule = 2
 
     # Get initial ordering using modified ETF
-    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=False)
 
     # run naive 1
     if naive_version == 1 or naive_version == 3:
@@ -55,26 +66,31 @@ def heuristics(G, num_machines, naive_version=0, iterations=1, verbose=False):
     
     # run naive 2
     if naive_version == 2 or naive_version == 3:   
-        psize = [len(nx.algorithms.dag.descendants(G, task))+1 for task in range(len(G))] 
+        psize = [len(nx.algorithms.dag.descendants(G, task)) + 1 for task in range(len(G))] 
         s_prime_naive = psize_to_speed(psize)
-        naive2_etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+        naive2_etf = Mod_ETF(G, w, s_prime_naive, num_machines, tie_breaking_rule, plot=verbose)
+       
         naive2_cost = naive2_etf.obj_value
         
     # run iterative heuristic once
     p_size,_ = approx_psize_homogeneous(G, etf.order, etf.h, etf.t)
     s = psize_to_speed(p_size)
-    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
-    
-    for i in range(iterations -1):
-        s = [1 for _ in range(len(G))]
-        t = get_t(etf.order, G, len(s), s)
-        p_size,_ = approx_psize_homogeneous(G, etf.order, etf.h, t)
-        s = psize_to_speed(p_size)
-        etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+    # etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+    t = native_rescheduler(G, s, w, etf.order)
+    total_cost, _, _ = compute_cost(w, t, s)
+#     for i in range(iterations -1):
+#         s = [1 for _ in range(len(G))]
+#         t = get_t(etf.order, G, len(s), s)
+#         p_size,_ = approx_psize_homogeneous(G, etf.order, etf.h, t)
+#         s = psize_to_speed(p_size)
+#         # etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+#         t = native_rescheduler(G, s, w, etf.order)
+#         total_cost, _, _ = compute_cost(w, t, s)
+# #         etf2 = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
+        
         
 
-    return naive1_cost, naive2_cost, etf.obj_value, etf
-
+    return naive1_cost, naive2_cost, total_cost, etf
 
 def get_t(order, graph, task_number, task_process_time):
     """
@@ -229,76 +245,28 @@ def native_rescheduler(G, s, w, order):
     return t
 
 
-
-
-# def approx_psize_hetero(G, order, interval, verbose=True):
-
-# 	num_tasks = len(G)
-# 	num_machines = len(order)
-# 	psize = [0 for _ in range(num_tasks)]
-
-# 	for curr_machine in range(num_machines):
-# 		for j in order[curr_machine]:
-
-# 			overlap_counter = [0 for _ in range(num_machines)]
-# 			overlap_counter[curr_machine] += 1
-# 			concurr_tasks = []
-# 			dependencies = []
-	
-
-# 			curr_start = interval[j][0]
-# 			curr_end = interval[j][1]
-
-# 			psize[j] += 1
-
-#             # grab all descendants on DAG
-# 			for d in list(nx.algorithms.dag.descendants(G, j)):
-# 				dependencies.append(d)
-
-#             # grab concurrent tasks on other machines			
-# 			for m in range(num_machines):
-# 				if m != curr_machine:
-
-# 					for other_j in order[m]:
-
-# 						other_start = interval[other_j][0]
-# 						other_end = interval[other_j][1]
-
-# 						if not (other_end <= curr_start):
-# 							if not (curr_end <= other_start):
-# 								concurr_tasks.append(other_j)
-# 								end = min(curr_end, other_end)
-# 								start = max(curr_start, other_start)
-# 								psize[j] += (end - start)/ (curr_end - curr_start)
-
-# 								for d in list(nx.algorithms.dag.descendants(G, other_j)):
-# 									if d not in concurr_tasks:
-# 										if d not in dependencies:
-# 											dependencies.append(d)
-										
-
-# 								if overlap_counter[m] == 0:
-# 									overlap_counter[m] = 1
-
-# 			psize[j] += len(dependencies)
-# 			psize[j] /= sum(overlap_counter)
-# 	return psize
-
-
-
 def general_heuristic(G, num_machines, w, iterations, verbose):
     
-
+    convergence = []
     s = [1 for _ in range(len(G))]
     tie_breaking_rule = 2
+    old_pseudosize = []
 
     for i in range(iterations):
         etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=verbose)
-        p_size = approx_psize_general(G, etf.order, etf.t, verbose)
-        s = psize_to_speed(p_size)
+        new_pseudosize = approx_psize_general(G, etf.order, etf.t, verbose)
 
-    t = native_rescheduler(G, s, w, etf.order)
-    obj_val, time, energy = compute_cost(w, t, s)
+        if old_pseudosize:
+            new_pseudosize = (old_pseudosize + new_pseudosize) / 2
+            old_pseudosize = new_pseudosize
+
+
+        s = psize_to_speed(new_pseudosize)
+
+        t = native_rescheduler(G, s, w, etf.order)
+        obj_val, time, energy = compute_cost(w, t, s)
+        convergence.append(obj_val)
+
     
     
-    return obj_val, time, energy, p_size, etf.order
+    return obj_val, time, energy, etf.order, convergence
