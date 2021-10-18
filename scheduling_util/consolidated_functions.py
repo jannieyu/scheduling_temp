@@ -3,7 +3,7 @@ import networkx as nx
 from scheduling_util.heuristics import *
 
 
-def opt_schedule_given_ordering(mrt, dag, weights, order, plot=False, compare=True):
+def opt_schedule_given_ordering(mrt, dag, weights, p, order, plot=False, compare=True):
     """
     solves optimization problem given ordering
     :param mrt: Boolean variable that is True if objective is to optimize for
@@ -26,7 +26,7 @@ def opt_schedule_given_ordering(mrt, dag, weights, order, plot=False, compare=Tr
                      (128 / 256, 128 / 256, 128 / 256),
                      (255 / 256, 255 / 256, 255 / 256), (0, 0, 0)]
     # get task scaling ordering
-    m1, s1, c1 = init_ordering_solver(mrt, dag, num_tasks, weights, order, task_scaling=True)
+    m1, s1, c1 = init_ordering_solver(mrt, dag, num_tasks, weights, p, order, task_scaling=True)
 
     _, task_process_time1, ending_time1, intervals1, speeds1, obj_value1 = solver_results(x, s1, m1, c1, weights, order=order, verbose=False)
     if plot:

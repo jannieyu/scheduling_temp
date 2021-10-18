@@ -5,7 +5,7 @@ import plotly.figure_factory as ff
 from fractions import Fraction as frac
 
 
-def init_ordering_solver(mrt, G, num_tasks, w, order, task_scaling=False):
+def init_ordering_solver(mrt, G, num_tasks, w, p, order, task_scaling=False):
     """
     prepares the solver (given ordering) by adding the necessary constraints
     :param mrt: Boolean variable that is True if objective is to optimize for
@@ -76,7 +76,7 @@ def init_ordering_solver(mrt, G, num_tasks, w, order, task_scaling=False):
         m.Equation(sum([w[i] / s[i] for i in lst]) <= M)
 
     # define MRT
-    m.Equation(m.sum([c[j] for j in range(num_tasks)]) == MRT)
+    m.Equation(m.sum([p[j] * c[j] for j in range(num_tasks)]) == MRT)
 
     if mrt:
         m.Obj(MRT + P)

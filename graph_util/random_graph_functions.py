@@ -20,7 +20,7 @@ def random_all_fork(num_tasks, seed=None):
     root = random.choice(list(directed_graph.nodes))
 
     all_fork_tree = make_rooted_tree(directed_graph, root)
-
+    
 
     return all_fork_tree, seed
 
