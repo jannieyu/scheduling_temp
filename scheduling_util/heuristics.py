@@ -198,7 +198,7 @@ def native_rescheduler(G, s, w, order):
     final time intervals for schedule.
     '''
 
-    machine_earliest_start = [0 for i in range(len(order))]
+    machine_earliest_start = [0 for _ in range(len(order))]
     t = [[0,0] for _ in range(len(s))]
     processed_tasks = set()
     
@@ -206,7 +206,6 @@ def native_rescheduler(G, s, w, order):
     for i, lst in enumerate(order):
         machine_to_task_list[i] = lst
 
-    
     while len(machine_to_task_list) != 0:
         # print(machine_to_task_list, machine_earliest_start)
         machines_to_remove = []
@@ -223,13 +222,13 @@ def native_rescheduler(G, s, w, order):
             last_child_end = 0
             process = True
             for j in prev_task_list:
-                if j not in processed_tasks:
+                if j is not None and j not in processed_tasks:
                     process = False
                     break
                 else:
                     last_child_end = max(last_child_end, t[j][1])
 
-
+            # print(task, list(prev_task_list), process)
             if process:
                 start_time = machine_earliest_start[machine]
                 t[task][0] = max(start_time, last_child_end)
@@ -241,6 +240,8 @@ def native_rescheduler(G, s, w, order):
                     machines_to_remove.append(machine)
         for machine in machines_to_remove:
             machine_to_task_list.pop(machine)
+
+        # print(machine_to_task_list)
 
     return t
 

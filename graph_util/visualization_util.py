@@ -10,21 +10,14 @@ def make_graph_visual(G, num_tasks):
     '''
     Visualize graph G
     '''
-
-    labels = {}
-
-    for i in range(0, num_tasks):
-        labels[i] = str(i)
     if nx.check_planarity(G)[0]:
         pos=nx.planar_layout(G)
     else:
-        pos=nx.draw_kamada_kawai(G)
-
+        pos=nx.shell_layout(G)
     nx.draw(G, pos, node_color='k', node_size=500)
-    nx.draw_networkx_labels(G, pos, labels, font_size=20, font_color='y')
+    nx.draw_networkx_labels(G, pos, font_size=20, font_color='y')
     plt.axis('off')
     plt.show()
-
 
 def plot_gantt(task_metadata, objective_value, color_palette):
     """
