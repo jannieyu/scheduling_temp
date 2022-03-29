@@ -10,6 +10,29 @@ import math
 import random
 import copy
 
+def heuristic_algorithm(G, num_machines):
+    '''
+    Algorithm for heuristic
+    '''
+    w = [1 for _ in range(len(G))]
+    s = [1 for _ in range(len(G))]
+
+    # psize = [len(nx.algorithms.dag.descendants(G, task)) + 1 for task in range(len(G))] 
+    # s = psize_to_speed(psize)
+    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule=2, plot=False)
+
+    # t = native_rescheduler(G, s, w, copy.deepcopy(etf.order))
+
+    # Find pseudosize
+    p_size = approx_psize_homogeneous(G, etf.order, etf.h, etf.t)
+    s_new = psize_to_speed(p_size)
+    t = native_rescheduler(G, s_new, w, copy.deepcopy(etf.order))
+    total_cost, _, _ = compute_cost(w, t, s_new)
+    
+    return etf.order, t, total_cost, s_new
+
+
+
 def naive_2(G, num_machines):
     
     psize = [len(nx.algorithms.dag.descendants(G, task)) + 1 for task in range(len(G))] 
@@ -194,19 +217,20 @@ def compute_cost(w, t, s):
 
 def native_rescheduler(G, s, w, order):
     '''
+
+    
     Given fixed ordering and speeds, perform greedy algorithm to obtain correct 
     final time intervals for schedule.
     '''
 
-    machine_earliest_start = [0 for i in range(len(order))]
-    t = [[0,0] for _ in range(len(s))]
+    machine_earliest_start = [0 for _ in range(len(order))]
+    t = [[0,0] for _ in range(len(G))]
     processed_tasks = set()
     
     machine_to_task_list = {}
     for i, lst in enumerate(order):
         machine_to_task_list[i] = lst
 
-    
     while len(machine_to_task_list) != 0:
         # print(machine_to_task_list, machine_earliest_start)
         machines_to_remove = []
@@ -223,13 +247,13 @@ def native_rescheduler(G, s, w, order):
             last_child_end = 0
             process = True
             for j in prev_task_list:
-                if j not in processed_tasks:
+                if j is not None and j not in processed_tasks:
                     process = False
                     break
                 else:
                     last_child_end = max(last_child_end, t[j][1])
 
-
+            # print(task, list(prev_task_list), process)
             if process:
                 start_time = machine_earliest_start[machine]
                 t[task][0] = max(start_time, last_child_end)
@@ -241,6 +265,8 @@ def native_rescheduler(G, s, w, order):
                     machines_to_remove.append(machine)
         for machine in machines_to_remove:
             machine_to_task_list.pop(machine)
+
+        # print(machine_to_task_list)
 
     return t
 
