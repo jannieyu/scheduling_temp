@@ -10,6 +10,29 @@ import math
 import random
 import copy
 
+def heuristic_algorithm(G, num_machines):
+    '''
+    Algorithm for heuristic
+    '''
+    w = [1 for _ in range(len(G))]
+    s = [1 for _ in range(len(G))]
+
+    # psize = [len(nx.algorithms.dag.descendants(G, task)) + 1 for task in range(len(G))] 
+    # s = psize_to_speed(psize)
+    etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule=2, plot=False)
+
+    # t = native_rescheduler(G, s, w, copy.deepcopy(etf.order))
+
+    # Find pseudosize
+    p_size = approx_psize_homogeneous(G, etf.order, etf.h, etf.t)
+    s_new = psize_to_speed(p_size)
+    t = native_rescheduler(G, s_new, w, copy.deepcopy(etf.order))
+    total_cost, _, _ = compute_cost(w, t, s_new)
+    
+    return etf.order, t, total_cost, s_new
+
+
+
 def naive_2(G, num_machines):
     
     psize = [len(nx.algorithms.dag.descendants(G, task)) + 1 for task in range(len(G))] 
@@ -194,12 +217,14 @@ def compute_cost(w, t, s):
 
 def native_rescheduler(G, s, w, order):
     '''
+
+    
     Given fixed ordering and speeds, perform greedy algorithm to obtain correct 
     final time intervals for schedule.
     '''
 
     machine_earliest_start = [0 for _ in range(len(order))]
-    t = [[0,0] for _ in range(len(s))]
+    t = [[0,0] for _ in range(len(G))]
     processed_tasks = set()
     
     machine_to_task_list = {}

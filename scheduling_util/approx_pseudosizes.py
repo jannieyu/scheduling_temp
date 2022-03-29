@@ -103,7 +103,8 @@ def approx_psize_homogeneous(G, order, h, interval, verbose=True):
             for j in sharing_subset:
                 num_shared_task_lst[j] = len(sharing_subset)
 
-    return psize, num_shared_task_lst
+    #return psize, num_shared_task_lst
+    return psize
 
 
 
