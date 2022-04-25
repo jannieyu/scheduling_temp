@@ -1,7 +1,7 @@
 from scheduling_util.optimization_functions import *
 import networkx as nx
 from scheduling_util.heuristics import *
-
+from scheduling_util.run_all_orderings import get_orderings
 
 def opt_schedule_given_ordering(mrt, dag, weights, p, order, plot=False, compare=True):
     """
@@ -97,10 +97,10 @@ def opt_schedule(dag, num_machines, weights, plot=False, verbose=False):
                      (255 / 256, 255 / 256, 255 / 256), (0, 0, 0)]
     # get task scaling ordering
     x1, m1, s1, c1 = init_opt_solver(dag, num_tasks, num_machines, weights)
-    order, task_process_time1, ending_time1, intervals1, speeds1, obj_value1 = solver_results(x1, s1, m1, c1, weights, verbose)
+    order, task_process_time1, ending_time1, intervals1, speeds1, obj_value1 = solver_results(x1, s1, m1, c1, weights, verbose=False)
     
     if order == []:
-        return None, None, None, None, None, None
+        return None, [-1], None, None, None, None
     # print("Order is ", order)
     
     if plot:
@@ -108,3 +108,36 @@ def opt_schedule(dag, num_machines, weights, plot=False, verbose=False):
         colors = plot_gantt(metadata1, obj_value1, color_palette)
     total_cost, time, energy = compute_cost(weights, intervals1, speeds1)
     return intervals1, speeds1, obj_value1, order, time, energy
+
+
+def opt_all_orderings(mrt, dag, num_machines, weights, p,  plot=False):
+    """Gets the opt given all the orderings 
+
+    Args:
+        dag (_type_): Dag to schedule
+        num_machines (_type_): total number of machines
+        weights (_type_): the weights for the tasks
+        plot (bool, optional): _description_. Defaults to False.
+        verbose (bool, optional): _description_. Defaults to False.
+    """
+    num_tasks = dag.number_of_nodes()
+    color_palette = [(0, 0, 255 / 256), (0, 255 / 256, 0), (255 / 256, 255 / 256, 0), (255 / 256, 0, 0),
+                     (255 / 256, 128 / 256, 0),
+                     (255 / 256, 0, 127 / 256), (0, 255 / 256, 255 / 256), (127 / 256, 0, 255 / 256),
+                     (128 / 256, 128 / 256, 128 / 256),
+                     (255 / 256, 255 / 256, 255 / 256), (0, 0, 0)]
+    # get all orderings
+    orderings = get_orderings(dag, num_machines)
+    # Signal that we do not need binary variable to find ordering
+    x = None
+    best_obj = np.inf
+    for ordering in orderings:
+        m1, s1, c1 = init_ordering_solver(mrt, dag, num_tasks, weights, p, ordering, task_scaling=True)
+        _, task_process_time1, ending_time1, intervals1, speeds1, obj_value1 = solver_results(x, s1, m1, c1, weights, order=ordering, verbose=False)
+        if obj_value1 < best_obj:
+            intervals = list(intervals1)
+            speeds = list(speeds1)
+            best_obj = obj_value1
+        
+
+    return intervals, speeds, best_obj
