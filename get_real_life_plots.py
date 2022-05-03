@@ -201,9 +201,9 @@ def gd_algorithm(lr_coefficients, df):
 
 def save_df(df, save_file):
     with open(save_file, "wb") as f:
-        pickle.dump(df, save_file)
+        pickle.dump(df, f)
 
-@slack_sender(webhook_url=webhook, channel="Vivek Anand", user_mentions=["U03DY5GB464"])
+@slack_sender(webhook_url="https://hooks.slack.com/services/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", channel="Vivek Anand", user_mentions=["U03DY5GB464"])
 def main():
     # All the train test files
     traces = ["1000genome", "cycles", "epigenomics", "montage", "seismology", "soykb"]
@@ -290,8 +290,6 @@ def main():
             save_df(df_results, save_test_name)
             print("________________________________________________________________________________")
     
-    return
-
 
 if __name__ == "__main__":
     main()
