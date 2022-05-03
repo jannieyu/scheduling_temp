@@ -17,7 +17,7 @@ from graph_util.erdos_renyi_dag import er_dag
 from scheduling_util.approx_pseudosizes import speed_to_psize
 from knockknock import slack_sender
 
-webhook = "FILL IN"
+webhook = "https://hooks.slack.com/services/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A"
 # Function to get list of feature sets. A feature set is in the form [x1, x2, ..., y] where y is psize
 def get_feature_set(G):
     lst = []
