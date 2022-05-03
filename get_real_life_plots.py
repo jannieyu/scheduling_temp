@@ -211,8 +211,8 @@ def main():
     num_machine_combos = [3, 10, 50, 100]
     for num_machines in num_machine_combos:
         for trace in traces:
-            train_file_name = f"real_life_traces/{trace}_machine_{num_machines}_train.csv"
-            test_file_name = f"real_life_traces/{trace}_machine_{num_machines}_test.csv"
+            train_file_name = f"real_life_traces/{trace}_train.csv"
+            test_file_name = f"real_life_traces/{trace}_test.csv"
             # Make the df_train_dataset
             df_train = create_dataset(num_machines, train_file_name)
             ##### Linear Regression #####
