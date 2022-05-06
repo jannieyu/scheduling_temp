@@ -51,6 +51,53 @@ def reset_psizes(psizes):
     return revised_lst
 
 
+def dataset_parallel_mapper(row):
+    dict_dag = ast.literal_eval(row["graph_object"])
+    G = nx.node_link_graph(dict_dag)
+
+    num_tasks = len(G)
+    
+    _, _, h1_cost, _ = heuristic_algorithm(G, 2)
+    w = [1 for _ in range(num_tasks)]
+    s = [1 for _ in range(num_tasks)]
+    p = [1 for _ in range(num_tasks)]
+    etf = Mod_ETF(G, w, s, 2, 2, plot=False)
+    weak_strongman_cost = naive_2(G, 2)
+    intervals, speeds, opt_cost = opt_schedule_given_ordering(True, G, w, p, etf.order, plot=False, compare=False)
+    global_intervals, global_speeds, global_opt_cost = opt_all_orderings(True, G, 2, w, p, False)
+    print(f"speeds is {speeds}")
+    if speeds[0] != -1:
+        entry_dict = {
+            "graph_object": nx.node_link_data(G),
+            "num_tasks": num_tasks,
+            "num_machines": 2,
+            "weights": w,
+            "order": etf.order,
+            "features": get_feature_set(G),
+            "psize": speed_to_psize(speeds),
+            "GD_cost": np.inf,
+            "LR_cost": np.inf,
+            "opt_cost": opt_cost,
+            "global_opt_cost": global_opt_cost,
+            "ETF-H_cost": h1_cost,
+            "weak_strongman_cost": weak_strongman_cost
+        }
+        return [entry_dict]
+    else:
+        return [-1]
+    
+def dataset_parallel_reducer(i, j):
+    if isinstance(i[0], int) and isinstance(j[0], int):
+        return []
+    elif isinstance(i[0], int):
+        return j
+    elif isinstance(j[0], int):
+        return i
+    else:
+        return [i[0], j[0]]
+
+
+
 # Function to create dataset
 def create_dataset(num_machines, csv_file):
     
@@ -73,50 +120,6 @@ def create_dataset(num_machines, csv_file):
 
     csv_df = pd.read_csv(csv_file) 
     
-    def dataset_parallel_mapper(row):
-        dict_dag = ast.literal_eval(row["graph_object"])
-        G = nx.node_link_graph(dict_dag)
-
-        num_tasks = len(G)
-        
-        _, _, h1_cost, _ = heuristic_algorithm(G, num_machines)
-        w = [1 for _ in range(num_tasks)]
-        s = [1 for _ in range(num_tasks)]
-        p = [1 for _ in range(num_tasks)]
-        etf = Mod_ETF(G, w, s, num_machines, tie_breaking_rule, plot=False)
-        weak_strongman_cost = naive_2(G, num_machines)
-        intervals, speeds, opt_cost = opt_schedule_given_ordering(True, G, w, p, etf.order, plot=False, compare=False)
-        global_intervals, global_speeds, global_opt_cost = opt_all_orderings(True, G, num_machines, w, p, False)
-        print(f"speeds is {speeds}")
-        if speeds[0] != -1:
-            entry_dict = {
-                "graph_object": nx.node_link_data(G),
-                "num_tasks": num_tasks,
-                "num_machines": num_machines,
-                "weights": w,
-                "order": etf.order,
-                "features": get_feature_set(G),
-                "psize": speed_to_psize(speeds),
-                "GD_cost": np.inf,
-                "LR_cost": np.inf,
-                "opt_cost": opt_cost,
-                "global_opt_cost": global_opt_cost,
-                "ETF-H_cost": h1_cost,
-                "weak_strongman_cost": weak_strongman_cost
-            }
-            return [entry_dict]
-        else:
-            return [-1]
-        
-    def dataset_parallel_reducer(i, j):
-        if isinstance(i[0], int) and isinstance(j[0], int):
-            return []
-        elif isinstance(i[0], int):
-            return j
-        elif isinstance(j[0], int):
-            return i
-        else:
-            return [i[0], j[0]]
 
     rows = []
     for index, row in tqdm(csv_df.iterrows()):
