@@ -17,7 +17,7 @@ from graph_util.erdos_renyi_dag import er_dag
 from scheduling_util.approx_pseudosizes import speed_to_psize
 from knockknock import slack_sender
 
-webhook = "FILL IN"
+webhook = "https://hooks.slack.com/services/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A"
 # Function to get list of feature sets. A feature set is in the form [x1, x2, ..., y] where y is psize
 def get_feature_set(G):
     lst = []
@@ -203,7 +203,7 @@ def save_df(df, save_file):
     with open(save_file, "wb") as f:
         pickle.dump(df, f)
 
-@slack_sender(webhook_url=webhook, channel="Vivek Anand", user_mentions=["U03DY5GB464"])
+@slack_sender(webhook_url="https://hooks.slack.com/services/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", channel="Vivek Anand", user_mentions=["U03DY5GB464"])
 def main():
     # All the train test files
     traces = ["1000genome", "cycles", "epigenomics", "montage", "seismology", "soykb"]
@@ -290,7 +290,6 @@ def main():
             save_df(df_results, save_test_name)
             print("________________________________________________________________________________")
     
-
 
 if __name__ == "__main__":
     main()
