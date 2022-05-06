@@ -15,12 +15,11 @@ from scheduling_util.heuristics import *
 from graph_util.random_graph_functions import random_all_fork, random_all_join
 from graph_util.erdos_renyi_dag import er_dag
 from scheduling_util.approx_pseudosizes import speed_to_psize
+import pickle
+from knockknock import slack_sender
+import mr4mp
+import multiprocessing
 
-training_data_filename = "small_graph_training_data.csv"
-testing_data_filename = "small_gaph_testing_data.csv"
-num_machines = 2
-
-feature_id = ['constant', 'num_descendants', 'out_degree_betweenness_centrality', 'trophic_levels']    
 
 # Function to get list of feature sets. A feature set is in the form [x1, x2, ..., y] where y is psize
 def get_feature_set(G):
@@ -51,6 +50,7 @@ def reset_psizes(psizes):
     assert(all([z > 0 for z in revised_lst]))
     return revised_lst
 
+
 # Function to create dataset
 def create_dataset(num_machines, csv_file):
     
@@ -72,8 +72,8 @@ def create_dataset(num_machines, csv_file):
     count = 0
 
     csv_df = pd.read_csv(csv_file) 
-    for index, row in tqdm(csv_df.iterrows()):
-        
+    
+    def dataset_parallel_mapper(row):
         dict_dag = ast.literal_eval(row["graph_object"])
         G = nx.node_link_graph(dict_dag)
 
@@ -104,11 +104,34 @@ def create_dataset(num_machines, csv_file):
                 "ETF-H_cost": h1_cost,
                 "weak_strongman_cost": weak_strongman_cost
             }
-            df = df.append(entry_dict, ignore_index = True)
-                    
+            return [entry_dict]
+        else:
+            return [-1]
+        
+    def dataset_parallel_reducer(i, j):
+        if isinstance(i[0], int) and isinstance(j[0], int):
+            return []
+        elif isinstance(i[0], int):
+            return j
+        elif isinstance(j[0], int):
+            return i
+        else:
+            return [i[0], j[0]]
+
+    rows = []
+    for index, row in tqdm(csv_df.iterrows()):
+        rows.append(row)
+
+    # Mapping and reducing
+    result = mr4mp.pool(multiprocessing.cpu_count()).mapreduce(dataset_parallel_mapper, dataset_parallel_reducer, rows)
+
+    # appending to entry dict
+    for entry_dict in result:
+        df.append(entry_dict, ignore_index=True)
+        
     return df
 
-df_train = create_dataset(num_machines, training_data_filename)
+
 
 def compute_cost(w, t, s):
     '''
@@ -137,43 +160,6 @@ def predict(coef, features):
     return np.matmul(m, coef)
 
 
-# Create X, Y dataset
-df_features = pd.DataFrame(columns = feature_id)
-df_psize = pd.DataFrame(columns = ["psize"])
-for index, row in df_train.iterrows():
-    for feature in row["features"]:
-        df_features = df_features.append(feature, ignore_index=True)
-    for psize in row["psize"]:
-        df_psize = df_psize.append({"psize": psize}, ignore_index=True)   
-X = df_features[feature_id]
-Y = df_psize[["psize"]]
-model=sm.OLS(Y, X.astype(float)).fit()
-print_model=model.summary()
-print(print_model)
-
-# weights learned from LR
-lr_coefficients = np.array(model.params)
-print(lr_coefficients)
-
-lr_lst = []
-
-for index, row in df_train.iterrows():
-    # predict using LR model
-    psizes = reset_psizes(predict(lr_coefficients, row["features"]))
-    speeds = psize_to_speed(psizes)
-    G = nx.node_link_graph(row["graph_object"])
-        
-    time_intervals = native_rescheduler(deepcopy(G), deepcopy(speeds), deepcopy(row["weights"]), deepcopy(row["order"]))
-    cost, power, time = compute_cost(row["weights"], time_intervals, speeds)
-    lr_lst.append(cost)
-    
-# update costs
-new_df = pd.DataFrame({'LR_cost': lr_lst})
-df_train.update(new_df)
-
-# for initialization purposes only
-new_df = pd.DataFrame({'GD_cost': lr_lst})
-df_train.update(new_df)
 
 # Functions for Gradient Descent Approach
 def single_weight_update(coef, G, w, features, order, curr_cost, step_size):
@@ -245,44 +231,91 @@ def gd_algorithm(lr_coefficients, df):
     
     return df, coef
 
-df_train_results, coef_train = gd_algorithm(lr_coefficients, df_train)
+def save_df(df, save_file):
+    with open(save_file, "wb") as f:
+        pickle.dump(df, f)
 
-print(lr_coefficients)
+@slack_sender(webhook_url="", channel="caltech", user_mentions=["U03DY5GB464"])
+def main():
+    training_data_filename = "small_graph_training_data.csv"
+    testing_data_filename = "small_graph_testing_data.csv"
+    num_machines = 2
 
-print(coef_train)
+    feature_id = ['constant', 'num_descendants', 'out_degree_betweenness_centrality', 'trophic_levels']
 
-# parameters
+    df_train = create_dataset(num_machines, training_data_filename)
+        # Create X, Y dataset
+    df_features = pd.DataFrame(columns = feature_id)
+    df_psize = pd.DataFrame(columns = ["psize"])
+    for index, row in df_train.iterrows():
+        for feature in row["features"]:
+            df_features = df_features.append(feature, ignore_index=True)
+        for psize in row["psize"]:
+            df_psize = df_psize.append({"psize": psize}, ignore_index=True)   
+    X = df_features[feature_id]
+    Y = df_psize[["psize"]]
+    model=sm.OLS(Y, X.astype(float)).fit()
+    print_model=model.summary()
+    print(print_model)
 
-count = 0
+    # weights learned from LR
+    lr_coefficients = np.array(model.params)
+    print(lr_coefficients)
 
-df_test = create_dataset(num_machines, testing_data_filename)
+    lr_lst = []
 
-lr_lst = []
-gd_lst = []
+    for index, row in df_train.iterrows():
+        # predict using LR model
+        psizes = reset_psizes(predict(lr_coefficients, row["features"]))
+        speeds = psize_to_speed(psizes)
+        G = nx.node_link_graph(row["graph_object"])
 
-for index, row in df_test.iterrows():
-    # predict using LR model
-    psizes_lr = reset_psizes(predict(lr_coefficients, row["features"]))
-    speeds_lr = psize_to_speed(psizes_lr)
-    G = nx.node_link_graph(row["graph_object"])
-    time_intervals_lr = native_rescheduler(deepcopy(G), deepcopy(speeds_lr), deepcopy(row["weights"]), deepcopy(row["order"]))
-    cost_lr, power_lr, time_lr = compute_cost(row["weights"], time_intervals_lr, speeds_lr)
-    lr_lst.append(cost_lr)
+        time_intervals = native_rescheduler(deepcopy(G), deepcopy(speeds), deepcopy(row["weights"]), deepcopy(row["order"]))
+        cost, power, time = compute_cost(row["weights"], time_intervals, speeds)
+        lr_lst.append(cost)
 
-# update costs
-new_df_lr = pd.DataFrame({'LR_cost': lr_lst})
-df_test.update(new_df_lr)
+    # update costs
+    new_df = pd.DataFrame({'LR_cost': lr_lst})
+    df_train.update(new_df)
 
-#print-out shows objective function value change
-df_results, coef_test = gd_algorithm(lr_coefficients, df_test)
+    # for initialization purposes only
+    new_df = pd.DataFrame({'GD_cost': lr_lst})
+    df_train.update(new_df)
 
-plt.scatter(df_results["num_tasks"], df_results["LR_cost"] / df_results["global_optima_cost"], label='GD / Global Optima', alpha=0.5)
-plt.scatter(df_results["num_tasks"], df_results["ETF-H_cost"] / df_results["global_optima_cost"], label='ETF-H / Global Optima', alpha=0.5)
-plt.scatter(df_results["num_tasks"], df_results["weak_strongman_cost"] / df_results["global_optima_cost"], label='ETF-H / Global Optima', alpha=0.5)
-plt.scatter(df_results["num_tasks"], df_results["opt_cost"] / df_results["global_optima_cost"], label='Opt Given Ordering / Global Optima', alpha=0.5)
-plt.title("Comparison of Global Optima with other heuristics\nnum_machines = 2")
-plt.xlabel("number of tasks in DAG")
-plt.ylabel("ratio")
-plt.legend()
-plt.show()
-plt.savefig("global_opt.png")
+    df_train_results, coef_train = gd_algorithm(lr_coefficients, df_train)
+    save_train_name = f"real_life_traces/results/train_global_opt_machine_2_train.pkl"
+    save_df(df_train_results, save_train_name)
+
+    print(lr_coefficients)
+
+    print(coef_train)
+
+    # parameters
+
+    count = 0
+
+    df_test = create_dataset(num_machines, testing_data_filename)
+
+    lr_lst = []
+    gd_lst = []
+
+    for index, row in df_test.iterrows():
+        # predict using LR model
+        psizes_lr = reset_psizes(predict(lr_coefficients, row["features"]))
+        speeds_lr = psize_to_speed(psizes_lr)
+        G = nx.node_link_graph(row["graph_object"])
+        time_intervals_lr = native_rescheduler(deepcopy(G), deepcopy(speeds_lr), deepcopy(row["weights"]), deepcopy(row["order"]))
+        cost_lr, power_lr, time_lr = compute_cost(row["weights"], time_intervals_lr, speeds_lr)
+        lr_lst.append(cost_lr)
+
+    # update costs
+    new_df_lr = pd.DataFrame({'LR_cost': lr_lst})
+    df_test.update(new_df_lr)
+
+    #print-out shows objective function value change
+    df_results, coef_test = gd_algorithm(lr_coefficients, df_test)
+    save_test_name = f"real_life_traces/results/test_global_opt_machine_2_train.pkl"
+    save_df(df_results, save_test_name)
+    
+if __name__ == "__main__":
+    main()

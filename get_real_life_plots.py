@@ -201,7 +201,7 @@ def gd_algorithm(lr_coefficients, df):
 
 def save_df(df, save_file):
     with open(save_file, "wb") as f:
-        pickle.dump(df, save_file)
+        pickle.dump(df, f)
 
 @slack_sender(webhook_url=webhook, channel="Vivek Anand", user_mentions=["U03DY5GB464"])
 def main():
@@ -290,7 +290,6 @@ def main():
             save_df(df_results, save_test_name)
             print("________________________________________________________________________________")
     
-    return
 
 
 if __name__ == "__main__":
