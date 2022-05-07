@@ -25,7 +25,7 @@ def create_random_graph_data(filename):
     # init parameters
     num_dags = 5
     num_machines = 2
-    num_tasks_list = [5, 10, 15]
+    num_tasks_list = [6,7,8,9,10]
     probability = 0.3
     input_df = pd.DataFrame(columns = [
             "graph_object", 
@@ -46,5 +46,5 @@ def create_random_graph_data(filename):
 
     input_df.to_csv(filename, index=False)
 
-create_random_graph_data("small_graph_training_data.csv")
-create_random_graph_data("small_graph_testing_data.csv")
+create_random_graph_data("small_graph1_training_data.csv")
+create_random_graph_data("small_graph1_testing_data.csv")

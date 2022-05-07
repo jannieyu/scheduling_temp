@@ -2,6 +2,7 @@ from scheduling_util.optimization_functions import *
 import networkx as nx
 from scheduling_util.heuristics import *
 from scheduling_util.run_all_orderings import get_orderings
+import numpy as np
 
 def opt_schedule_given_ordering(mrt, dag, weights, p, order, plot=False, compare=True):
     """
