@@ -23,7 +23,7 @@ from scheduling_util.approx_pseudosizes import speed_to_psize
 def create_random_graph_data(filename):
     
     # init parameters
-    num_dags = 5
+    num_dags = 10
     num_machines = 2
     num_tasks_list = [6,7,8,9,10]
     probability = 0.3
@@ -46,5 +46,5 @@ def create_random_graph_data(filename):
 
     input_df.to_csv(filename, index=False)
 
-create_random_graph_data("small_graph1_training_data.csv")
-create_random_graph_data("small_graph1_testing_data.csv")
+create_random_graph_data("small_graph_full_training_data.csv")
+create_random_graph_data("small_graph_full_testing_data.csv")

@@ -1,3 +1,4 @@
+from multiprocessing.dummy.connection import families
 import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,8 +18,13 @@ from graph_util.erdos_renyi_dag import er_dag
 from scheduling_util.approx_pseudosizes import speed_to_psize
 import pickle
 from knockknock import slack_sender
-import mr4mp
+from p_tqdm import p_umap
 import multiprocessing
+from functools import partial
+
+LOCK = multiprocessing.Lock()
+TRAIN_FILENAME = "logging/train_files/training.csv"
+TEST_FILENAME = "logging/test_files/testing.csv"
 
 
 # Function to get list of feature sets. A feature set is in the form [x1, x2, ..., y] where y is psize
@@ -51,7 +57,7 @@ def reset_psizes(psizes):
     return revised_lst
 
 
-def dataset_parallel_mapper(row):
+def dataset_parallel_mapper(filename, row):
     dict_dag = ast.literal_eval(row["graph_object"])
     G = nx.node_link_graph(dict_dag)
 
@@ -65,8 +71,9 @@ def dataset_parallel_mapper(row):
     weak_strongman_cost = naive_2(G, 2)
     intervals, speeds, opt_cost = opt_schedule_given_ordering(True, G, w, p, etf.order, plot=False, compare=False)
     global_intervals, global_speeds, global_opt_cost = opt_all_orderings(True, G, 2, w, p, False)
-    print(f"speeds is {speeds}")
-    if speeds[0] != -1:
+    # print(f"speeds is {speeds}")
+    # print(f"global speeds is {global_speeds}")
+    if speeds[0] != -1 or global_speeds[0]!=-1:
         entry_dict = {
             "graph_object": nx.node_link_data(G),
             "num_tasks": num_tasks,
@@ -82,24 +89,16 @@ def dataset_parallel_mapper(row):
             "ETF-H_cost": h1_cost,
             "weak_strongman_cost": weak_strongman_cost
         }
-        return [entry_dict]
+        LOCK.acquire()
+        entry_df = pd.DataFrame.from_dict(entry_dict)
+        entry_df.to_csv(filename, mode = 'a', header=False, index=False)
+        LOCK.release()
+        return entry_dict
     else:
-        return [-1]
+        return None
     
-def dataset_parallel_reducer(i, j):
-    if isinstance(i[0], int) and isinstance(j[0], int):
-        return []
-    elif isinstance(i[0], int):
-        return j
-    elif isinstance(j[0], int):
-        return i
-    else:
-        return [i[0], j[0]]
-
-
-
 # Function to create dataset
-def create_dataset(num_machines, csv_file):
+def create_dataset(num_machines, csv_file, save_filename, num_cpus=multiprocessing.cpu_count()-1):
     
     df = pd.DataFrame(columns = [
         "graph_object",
@@ -122,11 +121,14 @@ def create_dataset(num_machines, csv_file):
     
 
     rows = []
-    for index, row in tqdm(csv_df.iterrows()):
+    for index, row in csv_df.iterrows():
         rows.append(row)
 
-    # Mapping and reducing
-    result = mr4mp.pool(multiprocessing.cpu_count()).mapreduce(dataset_parallel_mapper, dataset_parallel_reducer, rows)
+    # Write to the file
+    df.to_csv(save_filename, "w+", index=False)
+    dataset_parallel_generator = partial(dataset_parallel_mapper, filename=save_filename)
+    # Mapping and doing it in parallel
+    result = list(filter(None,p_umap(dataset_parallel_generator, rows, num_cpus=num_cpus)))
 
     # appending to entry dict
     for entry_dict in result:
@@ -222,13 +224,13 @@ def gd_algorithm(lr_coefficients, df):
             cost_lst.append(new_cost)
             max_change = max(change, max_change)
             coef = new_coef
-        print(max_change)
+        #print(max_change)
 
         # update costs
         new_df = pd.DataFrame({'GD_cost': cost_lst})
         df.update(new_df)
         if max_change < stopping_condition and i > 1:
-            print("Hit stopping condition with ", max_change)
+            #print("Hit stopping condition with ", max_change)
             break
         i += 1
     
@@ -240,13 +242,13 @@ def save_df(df, save_file):
 
 @slack_sender(webhook_url="", channel="caltech", user_mentions=["U03DY5GB464"])
 def main():
-    training_data_filename = "small_graph_training_data.csv"
-    testing_data_filename = "small_graph_testing_data.csv"
+    training_data_filename = "small_graph_full_training_data.csv"
+    testing_data_filename = "small_graph_full_testing_data.csv"
     num_machines = 2
 
     feature_id = ['constant', 'num_descendants', 'out_degree_betweenness_centrality', 'trophic_levels']
 
-    df_train = create_dataset(num_machines, training_data_filename)
+    df_train = create_dataset(num_machines, training_data_filename, save_filename="logging/train_files/df_training.csv")
         # Create X, Y dataset
     df_features = pd.DataFrame(columns = feature_id)
     df_psize = pd.DataFrame(columns = ["psize"])
@@ -297,7 +299,7 @@ def main():
 
     count = 0
 
-    df_test = create_dataset(num_machines, testing_data_filename)
+    df_test = create_dataset(num_machines, testing_data_filename, save_filename="logging/test_files/df_test.csv")
 
     lr_lst = []
     gd_lst = []
@@ -317,7 +319,7 @@ def main():
 
     #print-out shows objective function value change
     df_results, coef_test = gd_algorithm(lr_coefficients, df_test)
-    save_test_name = f"real_life_traces/results/test_global_opt_machine_2_train.pkl"
+    save_test_name = f"real_life_traces/results/test_global_opt_machine_2_test.pkl"
     save_df(df_results, save_test_name)
     
 if __name__ == "__main__":
