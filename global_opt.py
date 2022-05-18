@@ -57,7 +57,7 @@ def reset_psizes(psizes):
     return revised_lst
 
 
-def dataset_parallel_mapper(filename, row):
+def dataset_parallel_mapper(row, filename):
     dict_dag = ast.literal_eval(row["graph_object"])
     G = nx.node_link_graph(dict_dag)
 
@@ -90,12 +90,28 @@ def dataset_parallel_mapper(filename, row):
             "weak_strongman_cost": weak_strongman_cost
         }
         LOCK.acquire()
-        entry_df = pd.DataFrame.from_dict(entry_dict)
+        entry_df = pd.DataFrame(columns = [
+        "graph_object",
+        "num_tasks",
+        "num_machines",
+        "weights",
+        "order",
+        "features",
+        "psize",
+        "GD_cost",
+        "LR_cost",
+        "opt_cost",
+        "global_opt_cost",
+        "ETF-H_cost",
+        "weak_strongman_cost"
+        ])
+    
+        entry_df = entry_df.append(entry_dict, ignore_index=True)
         entry_df.to_csv(filename, mode = 'a', header=False, index=False)
         LOCK.release()
-        return entry_dict
+        return [entry_dict]
     else:
-        return None
+        return [None]
     
 # Function to create dataset
 def create_dataset(num_machines, csv_file, save_filename, num_cpus=multiprocessing.cpu_count()-1):
@@ -110,7 +126,8 @@ def create_dataset(num_machines, csv_file, save_filename, num_cpus=multiprocessi
         "psize",
         "GD_cost",
         "LR_cost",
-        "global_optima_cost",
+        "opt_cost",
+        "global_opt_cost",
         "ETF-H_cost",
         "weak_strongman_cost"
     ])
@@ -125,10 +142,11 @@ def create_dataset(num_machines, csv_file, save_filename, num_cpus=multiprocessi
         rows.append(row)
 
     # Write to the file
-    df.to_csv(save_filename, "w+", index=False)
+    df.to_csv(save_filename,mode="w+", index=False)
     dataset_parallel_generator = partial(dataset_parallel_mapper, filename=save_filename)
     # Mapping and doing it in parallel
-    result = list(filter(None,p_umap(dataset_parallel_generator, rows, num_cpus=num_cpus)))
+    result = list(filter([None],p_umap(dataset_parallel_generator, rows, num_cpus=num_cpus)))
+    result = [r[0] for r in result]
 
     # appending to entry dict
     for entry_dict in result:
@@ -240,7 +258,7 @@ def save_df(df, save_file):
     with open(save_file, "wb") as f:
         pickle.dump(df, f)
 
-@slack_sender(webhook_url="", channel="caltech", user_mentions=["U03DY5GB464"])
+@slack_sender(webhook_url="https://hooks.slack.com/services/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", channel="caltech", user_mentions=["U03DY5GB464"])
 def main():
     training_data_filename = "small_graph_full_training_data.csv"
     testing_data_filename = "small_graph_full_testing_data.csv"
@@ -248,7 +266,7 @@ def main():
 
     feature_id = ['constant', 'num_descendants', 'out_degree_betweenness_centrality', 'trophic_levels']
 
-    df_train = create_dataset(num_machines, training_data_filename, save_filename="logging/train_files/df_training.csv")
+    df_train = create_dataset(num_machines, training_data_filename, save_filename="logging/train_files/df1_training.csv")
         # Create X, Y dataset
     df_features = pd.DataFrame(columns = feature_id)
     df_psize = pd.DataFrame(columns = ["psize"])
@@ -324,3 +342,4 @@ def main():
     
 if __name__ == "__main__":
     main()
+
