@@ -23,8 +23,8 @@ import multiprocessing
 from functools import partial
 
 LOCK = multiprocessing.Lock()
-TRAIN_FILENAME = "logging/train_files/training.csv"
-TEST_FILENAME = "logging/test_files/testing.csv"
+TRAIN_FILENAME = "logging/train_files/training1.csv"
+TEST_FILENAME = "logging/test_files/testing1.csv"
 
 
 # Function to get list of feature sets. A feature set is in the form [x1, x2, ..., y] where y is psize
@@ -258,15 +258,15 @@ def save_df(df, save_file):
     with open(save_file, "wb") as f:
         pickle.dump(df, f)
 
-@slack_sender(webhook_url="https://hooks.slack.com/services/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", channel="caltech", user_mentions=["U03DY5GB464"])
+@slack_sender(webhook_url="https://hooks.slack.com/services/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", channel="caltech", user_mentions=["U03DY5GB464"])
 def main():
-    training_data_filename = "small_graph_full_training_data.csv"
-    testing_data_filename = "small_graph_full_testing_data.csv"
+    training_data_filename = "small_graph_full1_training_data.csv"
+    testing_data_filename = "small_graph_full1_testing_data.csv"
     num_machines = 2
 
     feature_id = ['constant', 'num_descendants', 'out_degree_betweenness_centrality', 'trophic_levels']
 
-    df_train = create_dataset(num_machines, training_data_filename, save_filename="logging/train_files/df1_training.csv")
+    df_train = create_dataset(num_machines, training_data_filename, save_filename="logging/train_files/df2_training.csv")
         # Create X, Y dataset
     df_features = pd.DataFrame(columns = feature_id)
     df_psize = pd.DataFrame(columns = ["psize"])
@@ -317,7 +317,7 @@ def main():
 
     count = 0
 
-    df_test = create_dataset(num_machines, testing_data_filename, save_filename="logging/test_files/df_test.csv")
+    df_test = create_dataset(num_machines, testing_data_filename, save_filename="logging/test_files/df2_test.csv")
 
     lr_lst = []
     gd_lst = []
